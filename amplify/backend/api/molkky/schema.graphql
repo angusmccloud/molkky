@@ -1,0 +1,21 @@
+type Games @model @auth(rules: [{allow: public, operations: [read]}, {allow: private, operations: [create, read]}, {allow: owner, operations: [update, delete]}]) {
+  id: ID!
+  owner: String
+  players: [AWSJSON!]
+  scores: [AWSJSON]
+  gameStatus: String!
+  rules: AWSJSON
+}
+
+type Users @model @auth(rules: [{allow: public, operations: [read]}, {allow: private, operations: [read, create]}, {allow: owner, operations: [update, delete]}]) {
+  id: ID!
+  owner: String
+  email: String!
+  friends: [AWSJSON]
+  games: [AWSJSON]
+  stats: AWSJSON
+  image: String
+  imageThumbnail: String
+  name: String!
+}
+ 
