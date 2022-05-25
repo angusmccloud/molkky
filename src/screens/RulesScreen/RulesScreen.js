@@ -3,12 +3,12 @@ import { View } from 'react-native';
 import { Button, Text } from '../../components';
 import styles from './RulesScreenStyles';
 
-const RulesScreen = () => {
+const RulesScreen = ({ navigation, route }) => {
  
   return (
     <View style={styles.pageWrapper}>
-      <Text>
-        Rules Screen
+      <Text size='XL'>
+        ...Coming Soon...
       </Text>
     </View>
   );

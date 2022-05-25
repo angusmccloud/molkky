@@ -4,12 +4,13 @@ import { colors } from '../../styles';
 
 const ListItemSeparator = () => {
   return (
-    <View style={{
-      height: 1,
-      marginLeft: 10,
-      marginRight: 10,
-      backgroundColor: colors.primaryBlue,
-    }} />
+    <View style={{ width: '100%', paddingLeft: 10, paddingRight: 10, height: 1 }}>
+      <View style={{
+        height: 1,
+        backgroundColor: colors.primaryBlue,
+        width: '100%',
+      }} />
+    </View>
   )
 };
 

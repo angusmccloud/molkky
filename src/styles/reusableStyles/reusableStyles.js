@@ -13,6 +13,11 @@ const reusableStyles = StyleSheet.create({
     justifyContent: 'flex-start',
     backgroundColor: colors.white,
   },
+  scrollablePageWrapper: {
+    backgroundColor: colors.white,
+    height: height,
+    width: width,
+  },
   modalBackground: {
     justifyContent: "center",
     alignItems: "center",
@@ -62,6 +67,9 @@ const reusableStyles = StyleSheet.create({
   inputMultiLine: {
     minHeight: (typography.fontSizeM * 3) + (10 * 2),
   },
+  inputSmall: {
+    maxWidth: (typography.fontSizeM * 4) + (10 * 2),
+  }
 });
 
 export default reusableStyles;

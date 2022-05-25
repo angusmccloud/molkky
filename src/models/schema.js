@@ -47,6 +47,14 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "turns": {
+                    "name": "turns",
+                    "isArray": true,
+                    "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -94,7 +102,8 @@ export const schema = {
                                 "allow": "owner",
                                 "operations": [
                                     "update",
-                                    "delete"
+                                    "delete",
+                                    "create"
                                 ],
                                 "identityClaim": "cognito:username"
                             }
@@ -135,8 +144,8 @@ export const schema = {
                     "attributes": [],
                     "isArrayNullable": true
                 },
-                "games": {
-                    "name": "games",
+                "gameHistory": {
+                    "name": "gameHistory",
                     "isArray": true,
                     "type": "AWSJSON",
                     "isRequired": false,
@@ -171,6 +180,14 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "turnHistory": {
+                    "name": "turnHistory",
+                    "isArray": true,
+                    "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -202,7 +219,8 @@ export const schema = {
                             {
                                 "allow": "public",
                                 "operations": [
-                                    "read"
+                                    "read",
+                                    "create"
                                 ]
                             },
                             {
@@ -218,7 +236,8 @@ export const schema = {
                                 "allow": "owner",
                                 "operations": [
                                     "update",
-                                    "delete"
+                                    "delete",
+                                    "create"
                                 ],
                                 "identityClaim": "cognito:username"
                             }
@@ -230,5 +249,5 @@ export const schema = {
     },
     "enums": {},
     "nonModels": {},
-    "version": "540cb3be2f960fd96f77d6a603ce51c1"
+    "version": "9ee3daf335710b25a877f215ea15571d"
 };

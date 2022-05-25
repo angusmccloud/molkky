@@ -19,6 +19,7 @@ export declare class Games {
   readonly scores?: (string | null)[] | null;
   readonly gameStatus: string;
   readonly rules?: string | null;
+  readonly turns?: (string | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   constructor(init: ModelInit<Games, GamesMetaData>);
@@ -30,11 +31,12 @@ export declare class Users {
   readonly owner?: string | null;
   readonly email: string;
   readonly friends?: (string | null)[] | null;
-  readonly games?: (string | null)[] | null;
+  readonly gameHistory?: (string | null)[] | null;
   readonly stats?: string | null;
   readonly image?: string | null;
   readonly imageThumbnail?: string | null;
   readonly name: string;
+  readonly turnHistory?: (string | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   constructor(init: ModelInit<Users, UsersMetaData>);

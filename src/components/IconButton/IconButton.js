@@ -21,7 +21,7 @@ const IconButton = ({
       ? colors.gray
       : colors.primaryBlue,
     borderWidth: 0,
-    padding: size / 3,
+    padding: size / 4,
     borderRadius: size,
   }
 
@@ -34,6 +34,9 @@ const IconButton = ({
       : colors.primaryBlue;
     buttonStyle.backgroundColor = colors.white;
     buttonStyle.borderColor = colors.gray
+  } else if (variant === 'warning') {
+    buttonStyle.backgroundColor = colors.warning;
+    buttonStyle.borderColor = colors.gray;
   } // Add more button variants here!
 
   const pressHandler = () => {

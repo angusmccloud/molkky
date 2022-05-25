@@ -34,6 +34,8 @@ const getIconName = (name) => {
     iconName = 'add-circle-outline';
   } else if (name === 'edit') {
     iconName = 'create-outline';
+  } else if (name === 'close') {
+    iconName = 'close-outline';
   }
 
   return iconName;

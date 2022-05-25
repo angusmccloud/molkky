@@ -1,21 +1,23 @@
-type Games @model @auth(rules: [{allow: public, operations: [read]}, {allow: private, operations: [create, read]}, {allow: owner, operations: [update, delete]}]) {
+type Games @model @auth(rules: [{allow: public, operations: [read]}, {allow: private, operations: [create, read]}, {allow: owner, operations: [update, delete, create]}]) {
   id: ID!
   owner: String
   players: [AWSJSON!]
   scores: [AWSJSON]
   gameStatus: String!
   rules: AWSJSON
+  turns: [AWSJSON]
 }
 
-type Users @model @auth(rules: [{allow: public, operations: [read]}, {allow: private, operations: [read, create]}, {allow: owner, operations: [update, delete]}]) {
+type Users @model @auth(rules: [{allow: public, operations: [read, create]}, {allow: private, operations: [read, create]}, {allow: owner, operations: [update, delete, create]}]) {
   id: ID!
   owner: String
   email: String!
   friends: [AWSJSON]
-  games: [AWSJSON]
+  gameHistory: [AWSJSON]
   stats: AWSJSON
   image: String
   imageThumbnail: String
   name: String!
+  turnHistory: [AWSJSON]
 }
  

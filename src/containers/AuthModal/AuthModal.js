@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { View, Pressable, TextInput, ScrollView } from 'react-native';
 import { Auth } from 'aws-amplify';
+import * as SecureStore from 'expo-secure-store';
+import { Users } from '../../models';
 import { colors, typography } from '../../styles';
 import { Icon, Text, Button, ActivityIndicator, Modal } from '../../components';
-import { checkAuthStatus } from '../../utils/';
+import { checkAuthStatus, DataStore } from '../../utils/';
 import styles from './AuthModalStyles';
 
 const AuthModal = () => {
@@ -18,7 +20,6 @@ const AuthModal = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authInProgress, setAuthInProgress] = useState(false);
   const [error, setError] = useState('');
-
 
   const openModal = () => {
     console.log('-- Open Modal --');
@@ -35,6 +36,7 @@ const AuthModal = () => {
     setEmail('');
     setName('');
     setPassword('');
+    setConfirmPassword('');
     setInitialLoad(true);
   };
 
@@ -47,7 +49,10 @@ const AuthModal = () => {
     }
     try {
       await Auth.signIn(email, password);
-      console.log(' -- It Worked!! --');
+      console.log('-- Sign in Successful --');
+      const credentials = {email, password};
+      await SecureStore.setItemAsync('auth', JSON.stringify(credentials));
+      console.log(' -- And stored in the SecureStore --');
       closeModal();
     } catch ({ code }) {
       setAuthInProgress(false);
@@ -93,6 +98,17 @@ const AuthModal = () => {
         const user = await Auth.signUp(userObj);
         console.log('successfully signed up');
         console.log('-- Created User --', user);
+        const credentials = {email, password};
+        await SecureStore.setItemAsync('auth', JSON.stringify(credentials));
+        console.log(' -- And stored in the SecureStore --');
+        const userDb = await DataStore.save(
+          new Users({
+            owner: user.userSub,
+            name,
+            email,
+          })
+        );
+        console.log('-- And saved in the DataStore --', userDb);
         closeModal();
         // TO-DO: If we add a Snackbar, add it here!
       } catch (err) {
@@ -107,6 +123,8 @@ const AuthModal = () => {
     try {
       await Auth.signOut();
       console.log('successfully Signed Out');
+      await SecureStore.deleteItemAsync('auth');
+      console.log('And credentials removed from Secure Store');
       closeModal();
     } catch (err) {
       console.log('error signing out...', err);
@@ -196,7 +214,7 @@ const AuthModal = () => {
                   currentView === 'login' && (
                     <View style={{ padding: 10, alignItems: 'center' }}>
                       <Text bold style={{ marginBottom: 10 }}>
-                        Login to post, comment, and like
+                        Login to start a new game
                       </Text>
                       <TextInput
                         clearButtonMode="while-editing"
@@ -249,12 +267,12 @@ const AuthModal = () => {
                       </View>
                     </View>
                   )}
-                {!authStatus.isAuthed &&
+                {!authStatus?.isAuthed &&
                   !initialLoad &&
                   currentView === 'create' && (
                     <View style={styles.modalContentWrapper}>
                       <Text bold style={{ marginBottom: 10 }}>
-                        Create a new account to post, comment, and like
+                        Create an account to start your first game
                       </Text>
                       <TextInput
                         clearButtonMode="while-editing"
@@ -276,6 +294,7 @@ const AuthModal = () => {
                         maxLength={50}
                         returnKeyType="next"
                         placeholder="Name"
+                        autoCapitalize='words'
                         value={name}
                         placeholderTextColor={colors.textInputPlaceholder}
                         enablesReturnKeyAutomatically={true}
@@ -293,7 +312,7 @@ const AuthModal = () => {
                         enablesReturnKeyAutomatically={true}
                         maxLength={50}
                         placeholderTextColor={colors.textInputPlaceholder}
-                        returnKeyType="go"
+                        returnKeyType="next"
                         secureTextEntry={true}
                         textContentType="newPassword"
                         value={password}

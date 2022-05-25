@@ -10,6 +10,7 @@ export const getGames = /* GraphQL */ `
       scores
       gameStatus
       rules
+      turns
       createdAt
       updatedAt
       _version
@@ -32,6 +33,7 @@ export const listGames = /* GraphQL */ `
         scores
         gameStatus
         rules
+        turns
         createdAt
         updatedAt
         _version
@@ -63,6 +65,7 @@ export const syncGames = /* GraphQL */ `
         scores
         gameStatus
         rules
+        turns
         createdAt
         updatedAt
         _version
@@ -81,11 +84,12 @@ export const getUsers = /* GraphQL */ `
       owner
       email
       friends
-      games
+      gameHistory
       stats
       image
       imageThumbnail
       name
+      turnHistory
       createdAt
       updatedAt
       _version
@@ -106,11 +110,12 @@ export const listUsers = /* GraphQL */ `
         owner
         email
         friends
-        games
+        gameHistory
         stats
         image
         imageThumbnail
         name
+        turnHistory
         createdAt
         updatedAt
         _version
@@ -140,11 +145,12 @@ export const syncUsers = /* GraphQL */ `
         owner
         email
         friends
-        games
+        gameHistory
         stats
         image
         imageThumbnail
         name
+        turnHistory
         createdAt
         updatedAt
         _version

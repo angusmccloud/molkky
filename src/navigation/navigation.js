@@ -4,19 +4,19 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   HomeScreen,
+  NewGameScreen,
   UserScreen,
   RulesScreen,
 } from '../screens';
 import { colors } from '../styles';
 import { Icon, Text } from '../components';
-import { AuthModal } from '../containers';
 
 const stackNavOptions = {
   headerStyle: {
     backgroundColor: colors.primaryBlue,
     borderBottomWidth: 0,
     shadowOffset: { height: 0, width: 0 },
-  },
+  }
 };
 
 const HomeStack = createNativeStackNavigator();
@@ -26,7 +26,8 @@ const RulesStack = createNativeStackNavigator();
 const HomeStackScreen = () => {
   return (
     <HomeStack.Navigator screenOptions={stackNavOptions}>
-      <HomeStack.Screen name="Home" component={HomeScreen} options={{ headerRight: () => <AuthModal />, headerTitle: (props) => renderHeaderTitle(props)}} />
+      <HomeStack.Screen name="Home" component={HomeScreen} options={{ headerTitle: (props) => renderHeaderTitle(props)}} />
+      <HomeStack.Screen name="New Game" component={NewGameScreen} options={{ headerTitle: (props) => renderHeaderTitle(props)}} />
     </HomeStack.Navigator>
   );
 }

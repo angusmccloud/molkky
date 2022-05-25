@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Button, Text } from '../../components';
 import styles from './UserScreenStyles';
 
-const UserScreen = () => {
+const UserScreen = ({ navigation, route }) => {
  
   return (
     <View style={styles.pageWrapper}>

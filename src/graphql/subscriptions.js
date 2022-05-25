@@ -10,6 +10,7 @@ export const onCreateGames = /* GraphQL */ `
       scores
       gameStatus
       rules
+      turns
       createdAt
       updatedAt
       _version
@@ -27,6 +28,7 @@ export const onUpdateGames = /* GraphQL */ `
       scores
       gameStatus
       rules
+      turns
       createdAt
       updatedAt
       _version
@@ -44,6 +46,7 @@ export const onDeleteGames = /* GraphQL */ `
       scores
       gameStatus
       rules
+      turns
       createdAt
       updatedAt
       _version
@@ -59,11 +62,12 @@ export const onCreateUsers = /* GraphQL */ `
       owner
       email
       friends
-      games
+      gameHistory
       stats
       image
       imageThumbnail
       name
+      turnHistory
       createdAt
       updatedAt
       _version
@@ -79,11 +83,12 @@ export const onUpdateUsers = /* GraphQL */ `
       owner
       email
       friends
-      games
+      gameHistory
       stats
       image
       imageThumbnail
       name
+      turnHistory
       createdAt
       updatedAt
       _version
@@ -99,11 +104,12 @@ export const onDeleteUsers = /* GraphQL */ `
       owner
       email
       friends
-      games
+      gameHistory
       stats
       image
       imageThumbnail
       name
+      turnHistory
       createdAt
       updatedAt
       _version

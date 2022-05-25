@@ -16,7 +16,7 @@ export const darkOrange = '#b05b08';
 // App Specific Colors
 export const textDefault = darkNavy;
 export const borderColor = darkNavy;
-export const warning = orange;
+export const warning = error;
 export const primary = primaryBlue;
 export const textInputPlaceholder = gray;
 
