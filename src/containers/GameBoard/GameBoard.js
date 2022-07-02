@@ -14,157 +14,174 @@ const GameBoard = (props) => {
   const { createdAt, gameStatus, rules, whichPlayersTurn, gameRound, players, scores, turns, winningPlayerId } = game;
 
   const logScore = async (score) => {
-    // console.log('-- Score --', score);
-    setTurnPosting(true);
+    if (!turnPosting) {
+      // console.log('-- Score --', score);
+      setTurnPosting(true);
 
-    const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
-    const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
-    const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
-    const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
-    const endingScore = startingScore + score > rules.winningScore ? rules.goBackToScore : startingScore + score;
-    const winningTurn = endingScore === rules.winningScore;
-    const newScores = scores.map(score => {
-      if (score.playerId === whichPlayersTurn) {
-        return {
-          playerId: score.playerId,
-          score: endingScore,
+      const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
+      const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
+      const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
+      const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+      const endingScore = startingScore + score > rules.winningScore ? rules.goBackToScore : startingScore + score;
+      const winningTurn = endingScore === rules.winningScore;
+      const newScores = scores.map(score => {
+        if (score.playerId === whichPlayersTurn) {
+          return {
+            playerId: score.playerId,
+            score: endingScore,
+          }
+        } else {
+          return score;
         }
-      } else {
-        return score;
+      });
+
+      const thisTurn = {
+        playerId: whichPlayersTurn,
+        score,
+        gameRound,
+        startingScore,
+        winnableTurn: (rules.winningScore - startingScore) <= 12,
+        wonOnTurn: winningTurn,
+        endingScore,
+        skipped: false,
+        wentOver: startingScore + score > rules.winningScore,
+        eliminated: false, // Update this
+      };
+      // console.log('-- This Turn --', thisTurn);
+      const newTurns = [...turns, thisTurn];
+
+      try {
+        await DataStore.save(
+          Games.copyOf(game, updatedGame => {
+            updatedGame.whichPlayersTurn = nextPlayerId;
+            updatedGame.turns = newTurns;
+            updatedGame.gameRound = newRound;
+            updatedGame.scores = newScores;
+            updatedGame.gameStatus = winningTurn ? 'finished' : game.gameStatus;
+            updatedGame.winningPlayerId = winningTurn ? whichPlayersTurn : game.winningPlayerId;
+          })
+        );
+        setTimeout(() => {
+          setTurnPosting(false);
+        }, "300");
+
+      } catch (err) {
+        console.log('error posting Score Items', err)
+        setTurnPosting(false);
       }
-    });
-
-    const thisTurn = {
-      playerId: whichPlayersTurn,
-      score,
-      gameRound,
-      startingScore,
-      winnableTurn: (rules.winningScore - startingScore) <= 12,
-      wonOnTurn: winningTurn,
-      endingScore,
-      skipped: false,
-      wentOver: startingScore + score > rules.winningScore,
-      eliminated: false, // Update this
-    };
-    // console.log('-- This Turn --', thisTurn);
-    const newTurns = [...turns, thisTurn];
-
-    try {
-      await DataStore.save(
-        Games.copyOf(game, updatedGame => {
-          updatedGame.whichPlayersTurn = nextPlayerId;
-          updatedGame.turns = newTurns;
-          updatedGame.gameRound = newRound;
-          updatedGame.scores = newScores;
-          updatedGame.gameStatus = winningTurn ? 'finished' : game.gameStatus;
-          updatedGame.winningPlayerId = winningTurn ? whichPlayersTurn : game.winningPlayerId;
-        })
-      );
-      setTurnPosting(false);
-    } catch (err) {
-      console.log('error posting Score Items', err)
-      setTurnPosting(false);
     }
   }
 
   const undoTurn = async () => {
-    setTurnPosting(true);
+    if (!turnPosting) {
+      setTurnPosting(true);
 
-    const lastTurn = turns[turns.length - 1];
-    // console.log('-- Last Turn --', lastTurn);
-    const newTurns = turns.slice(0, turns.length - 1);
+      const lastTurn = turns[turns.length - 1];
+      // console.log('-- Last Turn --', lastTurn);
+      const newTurns = turns.slice(0, turns.length - 1);
 
-    const nextPlayerId = lastTurn.playerId;
-    const newRound = lastTurn.gameRound;
-    const newScores = scores.map(score => {
-      if (score.playerId === lastTurn.playerId) {
-        return {
-          playerId: score.playerId,
-          score: lastTurn.startingScore,
+      const nextPlayerId = lastTurn.playerId;
+      const newRound = lastTurn.gameRound;
+      const newScores = scores.map(score => {
+        if (score.playerId === lastTurn.playerId) {
+          return {
+            playerId: score.playerId,
+            score: lastTurn.startingScore,
+          }
+        } else {
+          return score;
         }
-      } else {
-        return score;
-      }
-    });
+      });
 
-    try {
-      await DataStore.save(
-        Games.copyOf(game, updatedGame => {
-          updatedGame.whichPlayersTurn = nextPlayerId;
-          updatedGame.turns = newTurns;
-          updatedGame.gameRound = newRound;
-          updatedGame.scores = newScores;
-          updatedGame.gameStatus = 'inProgress';
-          updatedGame.winningPlayerId = null;
-        })
-      );
-      setTurnPosting(false);
-    } catch (err) {
-      console.log('error posting Undo Turn', err)
-      setTurnPosting(false);
+      try {
+        await DataStore.save(
+          Games.copyOf(game, updatedGame => {
+            updatedGame.whichPlayersTurn = nextPlayerId;
+            updatedGame.turns = newTurns;
+            updatedGame.gameRound = newRound;
+            updatedGame.scores = newScores;
+            updatedGame.gameStatus = 'inProgress';
+            updatedGame.winningPlayerId = null;
+          })
+        );
+        setTimeout(() => {
+          setTurnPosting(false);
+        }, "300");
+      } catch (err) {
+        console.log('error posting Undo Turn', err)
+        setTurnPosting(false);
+      }
     }
   }
 
   const skipTurn = async () => {
-    setTurnPosting(true);
+    if (!turnPosting) {
+      setTurnPosting(true);
 
-    const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
-    const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
-    const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
-    const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+      const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
+      const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
+      const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
+      const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
 
-    const thisTurn = {
-      playerId: whichPlayersTurn,
-      score: 0,
-      gameRound,
-      startingScore,
-      winnableTurn: (rules.winningScore - startingScore) <= 12,
-      wonOnTurn: false,
-      endingScore: startingScore,
-      skipped: true,
-      wentOver: false,
-      eliminated: false,
-    };
-    // console.log('-- This Turn --', thisTurn);
-    const newTurns = [...turns, thisTurn];
+      const thisTurn = {
+        playerId: whichPlayersTurn,
+        score: 0,
+        gameRound,
+        startingScore,
+        winnableTurn: (rules.winningScore - startingScore) <= 12,
+        wonOnTurn: false,
+        endingScore: startingScore,
+        skipped: true,
+        wentOver: false,
+        eliminated: false,
+      };
+      // console.log('-- This Turn --', thisTurn);
+      const newTurns = [...turns, thisTurn];
 
-    try {
-      await DataStore.save(
-        Games.copyOf(game, updatedGame => {
-          updatedGame.whichPlayersTurn = nextPlayerId;
-          updatedGame.turns = newTurns;
-          updatedGame.gameRound = newRound;
-        })
-      );
-      setTurnPosting(false);
-    } catch (err) {
-      console.log('error posting Skip Turn', err);
-      setTurnPosting(false);
+      try {
+        await DataStore.save(
+          Games.copyOf(game, updatedGame => {
+            updatedGame.whichPlayersTurn = nextPlayerId;
+            updatedGame.turns = newTurns;
+            updatedGame.gameRound = newRound;
+          })
+        );
+        setTimeout(() => {
+          setTurnPosting(false);
+        }, "300");
+      } catch (err) {
+        console.log('error posting Skip Turn', err);
+        setTurnPosting(false);
+      }
     }
   }
 
   const playAgain = async () => {
-    setTurnPosting(true);
-    try {
-      await DataStore.save(
-        new Games({
-          owner: game.owner,
-          players: game.players,
-          scores: game.players.map(player => ({
-            playerId: player.id,
-            score: 0,
-          })),
-          gameStatus: 'inProgress',
-          rules: game.rules,
-          turns: [],
-          whichPlayersTurn: game.players[0].id,
-          gameRound: 1,
-        })
-      );
-      setTurnPosting(false);
-    } catch (err) {
-      console.log('error starting new game', err)
-      setTurnPosting(false);
+    if (!turnPosting) {
+      // setTurnPosting(true);
+      try {
+        await DataStore.save(
+          new Games({
+            owner: game.owner,
+            players: game.players,
+            scores: game.players.map(player => ({
+              playerId: player.id,
+              score: 0,
+            })),
+            gameStatus: 'inProgress',
+            rules: game.rules,
+            turns: [],
+            whichPlayersTurn: game.players[0].id,
+            gameRound: 1,
+          })
+        );
+        // setTimeout(() => {
+        //   setTurnPosting(false);
+        // }, "300");
+      } catch (err) {
+        console.log('error starting new game', err)
+        // setTurnPosting(false);
+      }
     }
   }
 
