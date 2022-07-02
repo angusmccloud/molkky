@@ -258,13 +258,13 @@ const AuthModal = () => {
                     onPress={logoutPressHandler}
                     disabled={authInProgress}
                   />
-                  <View style={{ paddingTop: 10 }}>
+                  {/* <View style={{ paddingTop: 10 }}>
                     <Button
                       text="Manage Profile"
                       variant="secondary"
                       onPress={goToUserPage}
                     />
-                  </View>
+                  </View> */}
                 </View>
               )}
               {!authStatus.isAuthed && currentView === "login" && (

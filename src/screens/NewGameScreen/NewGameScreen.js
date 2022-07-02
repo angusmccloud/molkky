@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import { View, TextInput, Switch } from 'react-native';
 import { StackActions } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Games } from '../../models';
 import uuid from 'react-native-uuid';
+import { Games } from '../../models';
 import { Button, Text, Divider, IconButton, ActivityIndicator } from '../../components';
-import styles from './NewGameScreenStyles';
 import { colors, typography } from '../../styles';
 import { DataStore } from '../../utils';
 import { AuthContext } from '../../contexts';
+import styles from './NewGameScreenStyles';
 
 const NewGameScreen = ({ navigation, route }) => {
   const [error, setError] = useState('');
@@ -59,7 +59,7 @@ const NewGameScreen = ({ navigation, route }) => {
     setPlayers(newPlayers);
   };
 
-  const startGame = async() => {
+  const startGame = async () => {
     // console.log('-- LET\'S PLAY! --', players);
     // console.log('-- Rules --', winningScore, goBackToScore, outAfterThreeMisses, outAfterThreeTimesOver);
     setCreatingGame(true);
@@ -104,9 +104,9 @@ const NewGameScreen = ({ navigation, route }) => {
       setReadyToStart(false);
     } else if (players.filter(p => p.name === '').length > 0) {
       setReadyToStart(false);
-    } else if(winningScore.length === 0) {
+    } else if (winningScore.length === 0) {
       setReadyToStart(false);
-    } else if(goBackToScore.length === 0) {
+    } else if (goBackToScore.length === 0) {
       setReadyToStart(false);
     } else {
       setReadyToStart(true);
@@ -159,7 +159,7 @@ const NewGameScreen = ({ navigation, route }) => {
         </View>
         <View style={styles.inputWrapper}>
           <Text size='L'>
-            3-Misses And You're Out:
+            3-Misses and You're Out:
           </Text>
           <Switch
             trackColor={{ false: colors.gray, true: colors.primaryBlue }}
@@ -171,7 +171,7 @@ const NewGameScreen = ({ navigation, route }) => {
         </View>
         <View style={styles.inputWrapper}>
           <Text size='L'>
-            3-Overs And You're Out:
+            3-Overs and You're Out:
           </Text>
           <Switch
             trackColor={{ false: colors.gray, true: colors.primaryBlue }}
@@ -181,10 +181,13 @@ const NewGameScreen = ({ navigation, route }) => {
             value={outAfterThreeTimesOver}
           />
         </View>
-        <Divider />
         <View style={styles.buttonsWrapper}>
-          <Button text={'Add Friend'} onPress={addFriend} disabled={creatingGame} />
-          <Button text={'Add Newbie'} onPress={addNewPlayer} disabled={creatingGame} />
+          <View style={styles.twoButtonWrapper}>
+            <Button text={'Add Friend'} onPress={addFriend} disabled={creatingGame} />
+          </View>
+          <View style={styles.twoButtonWrapper}>
+            <Button text={'Add Newbie'} onPress={addNewPlayer} disabled={creatingGame} />
+          </View>
         </View>
         {players.map(player => (
           <View key={player.id} style={styles.inputWrapper}>
@@ -209,8 +212,12 @@ const NewGameScreen = ({ navigation, route }) => {
             <ActivityIndicator size={40} />
           ) : (
             <>
-              <Button text={'Shuffle Order'} onPress={shuffleOrder} disabled={!readyToStart} />
-              <Button text={'Start Game'} onPress={startGame} disabled={!readyToStart} />
+              <View style={styles.twoButtonWrapper}>
+                <Button text={'Shuffle Order'} onPress={shuffleOrder} disabled={!readyToStart} />
+              </View>
+              <View style={styles.twoButtonWrapper}>
+                <Button text={'Start Game'} onPress={startGame} disabled={!readyToStart} />
+              </View>
             </>
           )}
         </View>

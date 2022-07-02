@@ -45,11 +45,15 @@ export const avatarColors = [
     textColor: black,
   },
   {
-    color: white,
-    textColor: black,
-  },
-  {
     color: black,
     textColor: white,
+  },
+  {
+    color: darkNavy,
+    textColor: white
+  },
+  {
+    color: darkOrange,
+    textColor: white
   }
 ];

@@ -11,9 +11,7 @@ const GameBoard = (props) => {
   const [turnPosting, setTurnPosting] = useState(false);
 
   const { game } = props;
-  // const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound } = props.game;
-  const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound, players, scores, turns, winningPlayerId } = props.game;
-  // console.log('-- Game Props --', game);
+  const { createdAt, gameStatus, rules, whichPlayersTurn, gameRound, players, scores, turns, winningPlayerId } = game;
 
   const logScore = async (score) => {
     // console.log('-- Score --', score);
@@ -170,18 +168,31 @@ const GameBoard = (props) => {
     }
   }
 
+  const playersInOrder = [];
+  const endOfOrder = [];
+  let foundCurrentPlayer = false;
+  players.forEach(player => {
+    if (player.id === whichPlayersTurn || foundCurrentPlayer) {
+      playersInOrder.push(player);
+      foundCurrentPlayer = true;
+    } else {
+      endOfOrder.push(player);
+    }
+  });
+  playersInOrder.push(...endOfOrder);
+
   return (
     <View style={styles.pageWrapper}>
       <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
-        {players.map((player, index) => {
+        {playersInOrder.map((player, index) => {
           return (
-            <>
+            <View key={index}>
               {index !== 0 && (
-                <View style={{paddingTop: 3, paddingBottom: 3}}>
+                <View style={{ paddingTop: 3, paddingBottom: 3 }}>
                   <Divider />
                 </View>
               )}
-              <View key={index} style={styles.playerWrapper}>
+              <View style={styles.playerWrapper}>
                 <View style={{ flexDirection: 'row' }}>
                   <View style={{ alignItems: 'center', justifyContent: 'center', paddingRight: 10 }}>
                     <Avatar name={player.name} size={(typography.fontSizeXL + typography.fontSizeS) * 1.5} textSize='XL' />
@@ -233,9 +244,11 @@ const GameBoard = (props) => {
                   </View>
                 </View>
               </View>
-            </>
+            </View>
           )
         })}
+      </KeyboardAwareScrollView>
+      <View style={styles.buttonSectionWrapper}>
         {gameStatus === 'inProgress' ? (
           <>
             <View style={styles.buttonsWrapper}>
@@ -309,7 +322,7 @@ const GameBoard = (props) => {
             </View>
           </>
         )}
-      </KeyboardAwareScrollView>
+      </View>
     </View>
   );
 }

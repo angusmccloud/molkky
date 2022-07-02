@@ -68,7 +68,27 @@ const reusableStyles = StyleSheet.create({
   },
   inputSmall: {
     maxWidth: (typography.fontSizeM * 4) + (10 * 2),
-  }
+  },
+  buttonsWrapper: {
+    flexDirection: 'row',
+    paddingTop: 5,
+    paddingBottom: 5,
+  },
+  fourButtonWrapper: {
+    width: '25%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  threeButtonWrapper: {
+    width: '33%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  twoButtonWrapper: {
+    width: '50%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default reusableStyles;

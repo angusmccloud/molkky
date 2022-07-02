@@ -10,7 +10,7 @@ const styles = StyleSheet.create({
   ...reusableStyles,
   playerWrapper: {
     // flexDirection: 'column',
-    width: width - 20,
+    width: width - 20 - ((typography.fontSizeXL + typography.fontSizeS) * 1.5),
     justifyContent: 'center',
     alignItems: 'flex-start',
     // paddingTop: 5,
@@ -39,26 +39,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  buttonsWrapper: {
-    flexDirection: 'row',
-    paddingTop: 5,
-    paddingBottom: 5,
-  },
-  fourButtonWrapper: {
-    width: '25%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  threeButtonWrapper: {
-    width: '33%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  twoButtonWrapper: {
-    width: '50%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  buttonSectionWrapper: {
+    borderTopWidth: 5,
+    borderTopColor: colors.primaryBlue,
+  }
 });
 
 export default styles;

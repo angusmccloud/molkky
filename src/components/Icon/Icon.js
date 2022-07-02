@@ -41,11 +41,13 @@ const getIconName = (name) => {
   } else if (name === 'skip') {
     iconName = 'arrow-redo-outline';
   } else if (name === 'wentOver') {
-    iconName = 'backspace-outline';
+    iconName = 'arrow-undo-outline';
   } else if (name === 'winner') {
     iconName = 'trophy';
   } else if (name === 'play') {
     iconName = 'play'
+  } else if (name === 'trash') {
+    iconName = 'trash-outline';
   }
 
   return iconName;
