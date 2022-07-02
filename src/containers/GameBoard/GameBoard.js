@@ -22,6 +22,7 @@ const GameBoard = (props) => {
     const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
     const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
     const endingScore = startingScore + score > rules.winningScore ? rules.goBackToScore : startingScore + score;
+    const winningTurn = endingScore === rules.winningScore;
     const newScores = scores.map(score => {
       if (score.playerId === whichPlayersTurn) {
         return {
@@ -39,6 +40,7 @@ const GameBoard = (props) => {
       gameRound,
       startingScore,
       winnableTurn: (rules.winningScore - startingScore) <= 12,
+      wonOnTurn: winningTurn,
       endingScore,
       skipped: false,
       wentOver: startingScore + score > rules.winningScore,
@@ -50,13 +52,15 @@ const GameBoard = (props) => {
     // console.log('-- New Turns --', newTurns);
 
     try {
-      console.log('-- Datastore Save Attampt -- ');
+      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
           updatedGame.turns = newTurns;
           updatedGame.gameRound = newRound;
           updatedGame.scores = newScores;
+          updatedGame.gameStatus = winningTurn ? 'finished' : game.gameStatus;
+          updatedGame.winningPlayerId = winningTurn ? whichPlayersTurn : game.winningPlayerId;
         })
       );
     } catch (err) {
@@ -86,7 +90,7 @@ const GameBoard = (props) => {
     });
 
     try {
-      console.log('-- Datastore Save Attampt -- ');
+      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
@@ -116,6 +120,7 @@ const GameBoard = (props) => {
       gameRound,
       startingScore,
       winnableTurn: (rules.winningScore - startingScore) <= 12,
+      wonOnTurn: false,
       endingScore: startingScore,
       skipped: true,
       wentOver: false,
@@ -127,7 +132,7 @@ const GameBoard = (props) => {
     // console.log('-- New Turns --', newTurns);
 
     try {
-      console.log('-- Datastore Save Attampt -- ');
+      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
