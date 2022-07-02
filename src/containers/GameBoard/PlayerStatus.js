@@ -1,5 +1,5 @@
 import React from 'react';
-import Animated, { FadeOutDown, FadeInUp, Layout } from 'react-native-reanimated'
+import Animated, { FadeOutDown, FadeInUp, Layout } from 'react-native-reanimated';
 import { View } from 'react-native';
 import { Text, Icon, Avatar } from '../../components';
 import styles from './GameBoardStyles';

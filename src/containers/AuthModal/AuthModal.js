@@ -344,7 +344,7 @@ const AuthModal = () => {
               )}
               {!authStatus.isAuthed && currentView === "create" && (
                 <View style={styles.modalContentWrapper}>
-                  <Text bold style={{ marginBottom: 10 }}>
+                  <Text bold style={{ paddingBottom: 10, paddingTop: 10, paddingLeft: 5, paddingRight: 5 }}>
                     Create a new account to post, comment, and like
                   </Text>
                   <TextInput
@@ -438,7 +438,7 @@ const AuthModal = () => {
                     onPress={processCreateAccount}
                     disabled={authInProgress}
                   />
-                  <View style={{ marginTop: 10 }}>
+                  <View style={{ marginTop: 10, marginBottom: 10 }}>
                     <Button
                       text="Login to Existing Account"
                       variant="secondary"

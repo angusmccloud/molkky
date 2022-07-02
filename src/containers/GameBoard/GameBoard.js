@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Button, Text, Icon, Divider, Avatar } from '../../components';
+import { Button, Text } from '../../components';
 import styles from './GameBoardStyles';
 import PlayerStatus from './PlayerStatus';
-import { colors, typography } from '../../styles';
 import { DataStore } from '../../utils';
 import { Games } from '../../models';
 
@@ -252,7 +251,7 @@ const GameBoard = (props) => {
           <>
             <View style={{ padding: 10, alignItems: 'center' }}>
               <Text bold size='XL'>
-                {players.find((p) => p.id === winningPlayerId).name} won!
+                {players.find((p) => p.id === winningPlayerId).name} Won!
               </Text>
             </View>
             <View style={styles.buttonsWrapper}>

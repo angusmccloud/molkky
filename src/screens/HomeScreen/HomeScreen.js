@@ -1,7 +1,7 @@
-import React, {useState, useEffect, useContext} from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Dialog, Portal, Menu } from "react-native-paper";
-import { Predicates, SortDirection } from 'aws-amplify';
+import { Dialog, Portal } from "react-native-paper";
+import { SortDirection } from 'aws-amplify';
 import { Games } from '../../models';
 import { View, Pressable } from 'react-native';
 import { Text, Icon, Button } from '../../components';
@@ -55,7 +55,7 @@ const HomeScreen = ({ navigation, route }) => {
   const endGame = async () => {
     // console.log('-- End Game --');
     const game = activeGames[0];
-    if(game) {
+    if (game) {
       try {
         await DataStore.save(
           Games.copyOf(game, updatedGame => {
@@ -71,7 +71,7 @@ const HomeScreen = ({ navigation, route }) => {
   }
 
   const fetchGames = async () => {
-    if(authStatus && authStatus.isAuthed) {
+    if (authStatus && authStatus.isAuthed) {
       try {
         const gamesData = await DataStore.query(Games, g => g.owner("eq", authStatus.id).gameStatus("ne", "abandoned"), {
           sort: s => s.createdAt(SortDirection.DESCENDING)
@@ -115,29 +115,42 @@ const HomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     fetchGames();
   }, [authStatus]);
- 
+
   return (
     <View style={styles.pageWrapper}>
       {authStatus && authStatus.isAuthed && activeGames.length > 0 ? (
         <>
-        <GameBoard game={activeGames[0]} /> 
-        <Portal>
-        <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog}>
-          <Dialog.Title>End Game</Dialog.Title>
-          <Dialog.Content>
-            <Text>Abandon Progress on this Game. This cannot be undone</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={hideDeleteDialog} text="Cancel" variant='secondary' />
-            <Button onPress={endGame} text="End Game" />
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-      </>
+          <GameBoard game={activeGames[0]} />
+          <Portal>
+            <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog}>
+              <Dialog.Title>End Game</Dialog.Title>
+              <Dialog.Content>
+                <Text>Abandon Progress on this Game. This cannot be undone</Text>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button onPress={hideDeleteDialog} text="Cancel" variant='secondary' />
+                <Button onPress={endGame} text="End Game" />
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
+        </>
       ) : (
-        <Text>
-          Start a game to get started!
-        </Text>
+        <View style={{ padding: 10, alignItems: 'center', width: '100%' }}>
+          {authStatus && authStatus.isAuthed && activeGames.length === 0 ? (
+            <>
+              <Text>
+                Start your first game now
+              </Text>
+              <View style={{paddingTop: 20}}>
+                <Button onPress={() => navigation.navigate('New Game')} text="Start New Game" />
+              </View>
+            </>
+          ) : (
+            <Text size='L' bold>
+              Login to start your first game
+            </Text>
+          )}
+        </View>
       )}
     </View>
   );

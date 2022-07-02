@@ -32,7 +32,7 @@ const reusableStyles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'flex-start',
     overflow: 'hidden',
-    width: width * .8,
+    width: width * .9,
   },
   modalHeader: {
     backgroundColor: colors.primaryBlue,
@@ -45,8 +45,6 @@ const reusableStyles = StyleSheet.create({
   },
   modalContentWrapper: {
     alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 10,
   },
   textInput: {
     fontSize: typography.fontSizeM,
