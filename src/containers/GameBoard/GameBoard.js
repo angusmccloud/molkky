@@ -129,20 +129,24 @@ const GameBoard = (props) => {
               <View style={styles.turnsWrapper}>
                 {turns.filter(turn => turn.playerId === player.id).length > 0 ? (
                   turns.filter(turn => turn.playerId === player.id).map((turn, index) => {
-                    if(turn.skipped) {
-                      return (
-                        <View key={index} style={{flexDirection: 'row'}}>
-                          <Text size='S'>
-                            {', '}
-                          </Text>
-                          <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
-                        </View>
-                      )
-                    }
                     return (
-                      <Text key={index} size='S'>
-                        {index > 0 ? ', ' : ''}{turn.score}
-                      </Text>
+                      <View key={index} style={{flexDirection: 'row'}}>
+                        <Text size='S'>
+                          {index > 0 ? ', ' : ''}
+                        </Text>
+                        {turn.skipped ? (
+                          <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
+                        ) : (
+                          <>
+                            <Text size='S'>
+                              {turn.score}
+                            </Text>
+                            {turn.wentOver ? (
+                              <Icon name='wentOver' size={typography.fontSizeS} color={colors.red} />
+                            ) : null}
+                          </>
+                        )}
+                      </View>
                     )
                   })
                 ) : (
