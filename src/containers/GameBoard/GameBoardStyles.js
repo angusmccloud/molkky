@@ -13,13 +13,13 @@ const styles = StyleSheet.create({
     width: width - 20,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    paddingTop: 5,
-    paddingBottom: 5,
-    paddingLeft: 10,
+    // paddingTop: 5,
+    // paddingBottom: 5,
+    // paddingLeft: 10,
     paddingRight: 10,
-    borderWidth: 1,
-    borderRadius: 10,
-    borderColor: colors.primaryBlue,
+    // borderWidth: 1,
+    // borderRadius: 10,
+    // borderColor: colors.primaryBlue,
     marginTop: 5,
     marginBottom: 5,
     marginLeft: 10,
@@ -30,12 +30,14 @@ const styles = StyleSheet.create({
   },
   playerHeader: {
     flexDirection: 'row',
+    alignItems: 'center'
   },
   turnsWrapper: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     paddingTop: 5,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   buttonsWrapper: {
     flexDirection: 'row',

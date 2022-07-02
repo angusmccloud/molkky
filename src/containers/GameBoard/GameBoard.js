@@ -175,15 +175,18 @@ const GameBoard = (props) => {
       <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {players.map((player, index) => {
           return (
-            <View key={index} style={[styles.playerWrapper, whichPlayersTurn === player.id && gameStatus === 'inProgress' ? styles.activePlayerWrapper : null]}>
+            <View key={index} style={styles.playerWrapper}>
               <View style={{flexDirection: 'row'}}>
                 <View style={{alignItems: 'center', justifyContent: 'center', paddingRight: 10}}>
-                  <Avatar name={player.name} size={typography.fontSizeXL + typography.fontSizeS + 10} textSize='XL' />
+                  <Avatar name={player.name} size={(typography.fontSizeXL + typography.fontSizeS) * 1.5} textSize='XL' />
                 </View>
                 <View style={{flexDirection: 'column'}}>
                   <View style={styles.playerHeader}>
                     {winningPlayerId === player.id && (
                       <Icon name='winner' color={colors.primaryBlue} size={typography.fontSizeXL} />
+                    )}
+                    {whichPlayersTurn === player.id && gameStatus === 'inProgress' && (
+                      <Icon name='play' color={colors.primaryBlue} size={typography.fontSizeXL} />
                     )}
                     <Text size='XL' bold>
                       {player.name}:{' '}
