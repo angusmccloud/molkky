@@ -66,11 +66,44 @@ const GameBoard = (props) => {
   }
 
   const undoTurn = async () => {
-    console.log('-- Undo --');
+    // console.log('-- Undo --');
+
+    const lastTurn = turns[turns.length - 1];
+    // console.log('-- Last Turn --', lastTurn);
+    const newTurns = turns.slice(0, turns.length - 1);
+
+    const nextPlayerId = lastTurn.playerId;
+    const newRound = lastTurn.gameRound;
+    const newScores = scores.map(score => {
+      if (score.playerId === lastTurn.playerId) {
+        return {
+          playerId: score.playerId,
+          score: lastTurn.startingScore,
+        }
+      } else {
+        return score;
+      }
+    });
+
+    try {
+      console.log('-- Datastore Save Attampt -- ');
+      await DataStore.save(
+        Games.copyOf(game, updatedGame => {
+          updatedGame.whichPlayersTurn = nextPlayerId;
+          updatedGame.turns = newTurns;
+          updatedGame.gameRound = newRound;
+          updatedGame.scores = newScores;
+        })
+      );
+    } catch (err) {
+      console.log('error posting Undo Turn', err)
+      // setIsLoading(false);
+    }
+
   }
 
   const skipTurn = async () => {
-    console.log('-- Skip Turn --');
+    // console.log('-- Skip Turn --');
 
     const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
     const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
@@ -88,7 +121,7 @@ const GameBoard = (props) => {
       wentOver: false,
       eliminated: false,
     };
-    console.log('-- This Turn --', thisTurn);
+    // console.log('-- This Turn --', thisTurn);
     const newTurns = [...turns, thisTurn];
     // console.log('-- currentPlayerIndex --', currentPlayerIndex);
     // console.log('-- New Turns --', newTurns);
@@ -106,7 +139,6 @@ const GameBoard = (props) => {
       console.log('error posting Skip Turn', err)
       // setIsLoading(false);
     }
-
   }
 
   return (
