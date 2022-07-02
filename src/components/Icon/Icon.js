@@ -37,7 +37,9 @@ const getIconName = (name) => {
   } else if (name === 'close') {
     iconName = 'close-outline';
   } else if (name === 'arrowRight') {
-    iconName = 'arrow-forward';
+    iconName = 'arrow-forward-circle-outline';
+  } else if (name === 'skip') {
+    iconName = 'arrow-redo-outline';
   }
 
   return iconName;

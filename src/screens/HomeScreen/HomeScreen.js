@@ -40,7 +40,7 @@ const HomeScreen = ({ navigation, route }) => {
   useFocusEffect(
     React.useCallback(() => {
       const subscription = DataStore.observe(Games).subscribe((game) => {
-        console.log('-- SUBSCRIPTION EVENT --');
+        // console.log('-- SUBSCRIPTION EVENT --');
         fetchGames();
       });
       return () => subscription.unsubscribe();

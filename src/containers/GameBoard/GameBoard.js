@@ -41,7 +41,7 @@ const GameBoard = (props) => {
       winnableTurn: (rules.winningScore - startingScore) <= 12,
       endingScore,
       skipped: false,
-      wentOver: false, // Update this
+      wentOver: startingScore + score > rules.winningScore,
       eliminated: false, // Update this
     };
     console.log('-- This Turn --', thisTurn);
@@ -57,23 +57,56 @@ const GameBoard = (props) => {
           updatedGame.turns = newTurns;
           updatedGame.gameRound = newRound;
           updatedGame.scores = newScores;
-          updatedGame.whichPlayersTurn = nextPlayerId;
         })
       );
-
     } catch (err) {
       console.log('error posting Score Items', err)
       // setIsLoading(false);
     }
-
   }
 
-  const undoTurn = () => {
+  const undoTurn = async () => {
     console.log('-- Undo --');
   }
 
-  const skipTurn = () => {
+  const skipTurn = async () => {
     console.log('-- Skip Turn --');
+
+    const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
+    const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
+    const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
+    const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+
+    const thisTurn = {
+      playerId: whichPlayersTurn,
+      score: 0,
+      gameRound,
+      startingScore,
+      winnableTurn: (rules.winningScore - startingScore) <= 12,
+      endingScore: startingScore,
+      skipped: true,
+      wentOver: false,
+      eliminated: false,
+    };
+    console.log('-- This Turn --', thisTurn);
+    const newTurns = [...turns, thisTurn];
+    // console.log('-- currentPlayerIndex --', currentPlayerIndex);
+    // console.log('-- New Turns --', newTurns);
+
+    try {
+      console.log('-- Datastore Save Attampt -- ');
+      await DataStore.save(
+        Games.copyOf(game, updatedGame => {
+          updatedGame.whichPlayersTurn = nextPlayerId;
+          updatedGame.turns = newTurns;
+          updatedGame.gameRound = newRound;
+        })
+      );
+    } catch (err) {
+      console.log('error posting Skip Turn', err)
+      // setIsLoading(false);
+    }
+
   }
 
   return (
@@ -96,6 +129,16 @@ const GameBoard = (props) => {
               <View style={styles.turnsWrapper}>
                 {turns.filter(turn => turn.playerId === player.id).length > 0 ? (
                   turns.filter(turn => turn.playerId === player.id).map((turn, index) => {
+                    if(turn.skipped) {
+                      return (
+                        <View key={index} style={{flexDirection: 'row'}}>
+                          <Text size='S'>
+                            {', '}
+                          </Text>
+                          <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
+                        </View>
+                      )
+                    }
                     return (
                       <Text key={index} size='S'>
                         {index > 0 ? ', ' : ''}{turn.score}

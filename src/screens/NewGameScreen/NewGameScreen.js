@@ -4,7 +4,7 @@ import { StackActions } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Games } from '../../models';
 import uuid from 'react-native-uuid';
-import { Button, Text, ListItemSeparator, IconButton, ActivityIndicator } from '../../components';
+import { Button, Text, Divider, IconButton, ActivityIndicator } from '../../components';
 import styles from './NewGameScreenStyles';
 import { colors, typography } from '../../styles';
 import { DataStore } from '../../utils';
@@ -181,7 +181,7 @@ const NewGameScreen = ({ navigation, route }) => {
             value={outAfterThreeTimesOver}
           />
         </View>
-        <ListItemSeparator />
+        <Divider />
         <View style={styles.buttonsWrapper}>
           <Button text={'Add Friend'} onPress={addFriend} disabled={creatingGame} />
           <Button text={'Add Newbie'} onPress={addNewPlayer} disabled={creatingGame} />
@@ -206,7 +206,7 @@ const NewGameScreen = ({ navigation, route }) => {
         ))}
         <View style={styles.buttonsWrapper}>
           {creatingGame ? (
-            <ActivityIndicator size='large' color={colors.primaryBlue} />
+            <ActivityIndicator size={40} />
           ) : (
             <>
               <Button text={'Shuffle Order'} onPress={shuffleOrder} disabled={!readyToStart} />
