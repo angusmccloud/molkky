@@ -52,6 +52,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  twoButtonWrapper: {
+    width: '50%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default styles;

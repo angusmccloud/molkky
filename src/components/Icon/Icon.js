@@ -42,6 +42,8 @@ const getIconName = (name) => {
     iconName = 'arrow-redo-outline';
   } else if (name === 'wentOver') { 
     iconName = 'refresh-outline';
+  } else if (name === 'winner') {
+    iconName = 'trophy';
   }
 
   return iconName;

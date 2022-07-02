@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Button, Text, Icon, IconButton } from '../../components';
+import { Button, Text, Icon, IconButton, Avatar } from '../../components';
 import styles from './GameBoardStyles';
 import { colors, typography } from '../../styles';
 import { DataStore } from '../../utils';
@@ -11,7 +11,7 @@ const GameBoard = (props) => {
 
   const { game } = props;
   // const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound } = props.game;
-  const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound, players, scores, turns } = props.game;
+  const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound, players, scores, turns, winningPlayerId } = props.game;
   // console.log('-- Game Props --', game);
 
   const logScore = async (score) => {
@@ -97,6 +97,8 @@ const GameBoard = (props) => {
           updatedGame.turns = newTurns;
           updatedGame.gameRound = newRound;
           updatedGame.scores = newScores;
+          updatedGame.gameStatus = 'inProgress';
+          updatedGame.winningPlayerId = null;
         })
       );
     } catch (err) {
@@ -151,12 +153,12 @@ const GameBoard = (props) => {
       <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {players.map((player, index) => {
           return (
-            <View key={index} style={[styles.playerWrapper, whichPlayersTurn === player.id ? styles.activePlayerWrapper : null]}>
+            <View key={index} style={[styles.playerWrapper, whichPlayersTurn === player.id && gameStatus === 'inProgress' ? styles.activePlayerWrapper : null]}>
               <View style={styles.playerHeader}>
+                {winningPlayerId === player.id && (
+                  <Icon name='winner' color={colors.primaryBlue} size={typography.fontSizeXL} />
+                )}
                 <Text size='XL' bold>
-                  {whichPlayersTurn === player.id && (
-                    <Icon name='arrowRight' size={typography.fontSizeXL} color={colors.primaryBlue} />
-                  )}
                   {player.name}:{' '}
                 </Text>
                 <Text size='XL'>
@@ -195,7 +197,7 @@ const GameBoard = (props) => {
             </View>
           )
         })}
-        {game.gameStatus === 'inProgress' ? (
+        {gameStatus === 'inProgress' ? (
           <>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
@@ -252,11 +254,21 @@ const GameBoard = (props) => {
             </View>
           </>
         ) : (
-          <View>
-            <Text>
-              Game Over!
+          <>
+          <View style={{padding: 10, alignItems: 'center'}}>
+            <Text bold size='XL'>
+              {players.find((p) => p.id === winningPlayerId).name} won!
             </Text>
           </View>
+          <View style={styles.buttonsWrapper}>
+              <View style={styles.twoButtonWrapper}>
+                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0} />
+              </View>
+              <View style={styles.twoButtonWrapper}>
+                <Button onPress={() => playAgain()} text='Play Again' />
+              </View>
+            </View>
+            </>
         )}
       </KeyboardAwareScrollView>
     </View>

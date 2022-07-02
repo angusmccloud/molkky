@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useContext} from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { Predicates, SortDirection } from 'aws-amplify';
 import { Games } from '../../models';
 import { View, Pressable } from 'react-native';
 import { Text, Icon } from '../../components';
@@ -30,7 +31,10 @@ const HomeScreen = ({ navigation, route }) => {
   const fetchGames = async () => {
     if(authStatus && authStatus.isAuthed) {
       try {
-        const gamesData = await DataStore.query(Games, g => g.owner("eq", authStatus.id).gameStatus("eq", "inProgress"));
+        const gamesData = await DataStore.query(Games, g => g.owner("eq", authStatus.id), {
+          sort: s => s.createdAt(SortDirection.DESCENDING)
+        });
+
         setActiveGames(gamesData);
         // console.log('-- gamesData --', gamesData);
       } catch (err) { console.log('error fetching Games', err) }
@@ -51,7 +55,7 @@ const HomeScreen = ({ navigation, route }) => {
     navigation.setOptions({
       headerRight: () => <AuthModal />
     });
-    if (authStatus && authStatus.isAuthed && activeGames.length === 0) {
+    if (authStatus && authStatus.isAuthed && (activeGames.length === 0 || activeGames[0].gameStatus === 'finished')) {
       navigation.setOptions({
         headerLeft: () => addItemButton()
       });
