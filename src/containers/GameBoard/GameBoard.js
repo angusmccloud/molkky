@@ -187,7 +187,7 @@ const GameBoard = (props) => {
       <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {playersInOrder.map((player, index) => {
           return (
-            <PlayerStatus key={index} index={index} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} />
+            <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} />
           )
         })}
       </KeyboardAwareScrollView>

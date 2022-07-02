@@ -1,19 +1,20 @@
 import React from 'react';
+import Animated, { FadeOutDown, FadeInUp, Layout } from 'react-native-reanimated'
 import { View } from 'react-native';
-import { Text, Icon, Divider, Avatar } from '../../components';
+import { Text, Icon, Avatar } from '../../components';
 import styles from './GameBoardStyles';
 import { colors, typography } from '../../styles';
 
 const PlayerStatus = (props) => {
-  const { index, player, winningPlayerId, whichPlayersTurn, gameStatus, scores, turns } = props;
+  const { player, winningPlayerId, whichPlayersTurn, gameStatus, scores, turns } = props;
 
   return (
-    <View>
-      {index !== 0 && (
-        <View style={{ paddingTop: 3, paddingBottom: 3 }}>
-          <Divider />
-        </View>
-      )}
+    <Animated.View
+      style={styles.container}
+      layout={Layout}
+      entering={FadeInUp}
+      exiting={FadeOutDown}
+    >
       <View style={styles.playerWrapper}>
         <View style={{ flexDirection: 'row' }}>
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingRight: 10 }}>
@@ -66,7 +67,7 @@ const PlayerStatus = (props) => {
           </View>
         </View>
       </View>
-    </View>
+    </Animated.View>
   )
 }
 
