@@ -176,45 +176,52 @@ const GameBoard = (props) => {
         {players.map((player, index) => {
           return (
             <View key={index} style={[styles.playerWrapper, whichPlayersTurn === player.id && gameStatus === 'inProgress' ? styles.activePlayerWrapper : null]}>
-              <View style={styles.playerHeader}>
-                {winningPlayerId === player.id && (
-                  <Icon name='winner' color={colors.primaryBlue} size={typography.fontSizeXL} />
-                )}
-                <Text size='XL' bold>
-                  {player.name}:{' '}
-                </Text>
-                <Text size='XL'>
-                  {scores.find(score => score.playerId === player.id).score}
-                </Text>
-              </View>
-              <View style={styles.turnsWrapper}>
-                {turns.filter(turn => turn.playerId === player.id).length > 0 ? (
-                  turns.filter(turn => turn.playerId === player.id).map((turn, index) => {
-                    return (
-                      <View key={index} style={{flexDirection: 'row'}}>
-                        <Text size='S'>
-                          {index > 0 ? ', ' : ''}
-                        </Text>
-                        {turn.skipped ? (
-                          <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
-                        ) : (
-                          <>
+              <View style={{flexDirection: 'row'}}>
+                <View style={{alignItems: 'center', justifyContent: 'center', paddingRight: 10}}>
+                  <Avatar name={player.name} size={typography.fontSizeXL + typography.fontSizeS + 10} textSize='XL' />
+                </View>
+                <View style={{flexDirection: 'column'}}>
+                  <View style={styles.playerHeader}>
+                    {winningPlayerId === player.id && (
+                      <Icon name='winner' color={colors.primaryBlue} size={typography.fontSizeXL} />
+                    )}
+                    <Text size='XL' bold>
+                      {player.name}:{' '}
+                    </Text>
+                    <Text size='XL'>
+                      {scores.find(score => score.playerId === player.id).score}
+                    </Text>
+                  </View>
+                  <View style={styles.turnsWrapper}>
+                    {turns.filter(turn => turn.playerId === player.id).length > 0 ? (
+                      turns.filter(turn => turn.playerId === player.id).map((turn, index) => {
+                        return (
+                          <View key={index} style={{flexDirection: 'row'}}>
                             <Text size='S'>
-                              {turn.score}
+                              {index > 0 ? ', ' : ''}
                             </Text>
-                            {turn.wentOver ? (
-                              <Icon name='wentOver' size={typography.fontSizeS} color={colors.red} />
-                            ) : null}
-                          </>
-                        )}
-                      </View>
-                    )
-                  })
-                ) : (
-                  <Text>
-                    Hasn't had a turn yet
-                  </Text>
-                )}
+                            {turn.skipped ? (
+                              <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
+                            ) : (
+                              <>
+                                <Text size='S'>
+                                  {turn.score}
+                                </Text>
+                                {turn.wentOver ? (
+                                  <Icon name='wentOver' size={typography.fontSizeS} color={colors.red} />
+                                ) : null}
+                              </>
+                            )}
+                          </View>
+                        )
+                      })
+                    ) : (
+                      <Text size='S'>
+                        Hasn't had a turn yet
+                      </Text>
+                    )}
+                  </View>
+                </View>
               </View>
             </View>
           )
@@ -223,55 +230,55 @@ const GameBoard = (props) => {
           <>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(1)} text='1' disabled={turnPosting} />
+                <Button onPress={() => logScore(1)} text='1' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(2)} text='2' disabled={turnPosting} />
+                <Button onPress={() => logScore(2)} text='2' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(3)} text='3' disabled={turnPosting} />
+                <Button onPress={() => logScore(3)} text='3' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(4)} text='4' disabled={turnPosting} />
+                <Button onPress={() => logScore(4)} text='4' />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(5)} text='5' disabled={turnPosting} />
+                <Button onPress={() => logScore(5)} text='5' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(6)} text='6' disabled={turnPosting} />
+                <Button onPress={() => logScore(6)} text='6' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(7)} text='7' disabled={turnPosting} />
+                <Button onPress={() => logScore(7)} text='7' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(8)} text='8' disabled={turnPosting} />
+                <Button onPress={() => logScore(8)} text='8' />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(9)} text='9' disabled={turnPosting} />
+                <Button onPress={() => logScore(9)} text='9' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(10)} text='10' disabled={turnPosting} />
+                <Button onPress={() => logScore(10)} text='10' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(11)} text='11' disabled={turnPosting} />
+                <Button onPress={() => logScore(11)} text='11' />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(12)} text='12' disabled={turnPosting} />
+                <Button onPress={() => logScore(12)} text='12' />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo' disabled={turns.length === 0 || turnPosting} />
+                <Button onPress={() => undoTurn()} text='Undo' disabled={turns.length === 0} />
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => logScore(0)} text='0' disabled={turnPosting} />
+                <Button onPress={() => logScore(0)} text='0' />
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => skipTurn()} text='Skip' disabled={turnPosting} />
+                <Button onPress={() => skipTurn()} text='Skip' />
               </View>
             </View>
           </>
@@ -284,10 +291,10 @@ const GameBoard = (props) => {
           </View>
           <View style={styles.buttonsWrapper}>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0 || turnPosting} />
+                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0} />
               </View>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => playAgain()} text='Play Again' disabled={turnPosting} />
+                <Button onPress={() => playAgain()} text='Play Again' />
               </View>
             </View>
             </>

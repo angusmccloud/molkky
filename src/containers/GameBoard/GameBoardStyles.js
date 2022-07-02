@@ -9,7 +9,7 @@ const height = dim.height;
 const styles = StyleSheet.create({
   ...reusableStyles,
   playerWrapper: {
-    flexDirection: 'column',
+    // flexDirection: 'column',
     width: width - 20,
     justifyContent: 'center',
     alignItems: 'flex-start',
