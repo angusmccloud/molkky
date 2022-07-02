@@ -1,6 +1,5 @@
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import Text from '../Text/Text'
 import { colors } from '../../styles';
 import Icon from '../Icon/Icon';
 
@@ -21,7 +20,7 @@ const IconButton = ({
       ? colors.gray
       : colors.primaryBlue,
     borderWidth: 0,
-    padding: size / 4,
+    padding: size / 3,
     borderRadius: size,
   }
 
@@ -34,9 +33,6 @@ const IconButton = ({
       : colors.primaryBlue;
     buttonStyle.backgroundColor = colors.white;
     buttonStyle.borderColor = colors.gray
-  } else if (variant === 'warning') {
-    buttonStyle.backgroundColor = colors.warning;
-    buttonStyle.borderColor = colors.gray;
   } // Add more button variants here!
 
   const pressHandler = () => {

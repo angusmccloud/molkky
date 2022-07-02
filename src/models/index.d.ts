@@ -15,11 +15,13 @@ type UsersMetaData = {
 export declare class Games {
   readonly id: string;
   readonly owner?: string | null;
-  readonly players?: string[] | null;
-  readonly scores?: (string | null)[] | null;
+  readonly players: string;
+  readonly scores?: string | null;
   readonly gameStatus: string;
   readonly rules?: string | null;
-  readonly turns?: (string | null)[] | null;
+  readonly turns?: string | null;
+  readonly whichPlayersTurn?: string | null;
+  readonly gameRound?: number | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   constructor(init: ModelInit<Games, GamesMetaData>);
@@ -30,13 +32,13 @@ export declare class Users {
   readonly id: string;
   readonly owner?: string | null;
   readonly email: string;
-  readonly friends?: (string | null)[] | null;
-  readonly gameHistory?: (string | null)[] | null;
+  readonly friends?: string | null;
+  readonly gameHistory?: string | null;
   readonly stats?: string | null;
   readonly image?: string | null;
   readonly imageThumbnail?: string | null;
   readonly name: string;
-  readonly turnHistory?: (string | null)[] | null;
+  readonly turnHistory?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   constructor(init: ModelInit<Users, UsersMetaData>);

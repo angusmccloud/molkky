@@ -3,11 +3,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '../../styles';
 
 const Icon = (props) => {
-  const { name, size = 32, color = colors.primaryBlue } = props;
+  const { name, size = 32, color = colors.primaryBlue, ...restOfProps } = props;
   const iconName = getIconName(name);
 
   return (
-    <Ionicons name={iconName} size={size} color={color} />
+    <Ionicons name={iconName} size={size} color={color} {...restOfProps} />
   );
 };
 
@@ -36,6 +36,8 @@ const getIconName = (name) => {
     iconName = 'create-outline';
   } else if (name === 'close') {
     iconName = 'close-outline';
+  } else if (name === 'arrowRight') {
+    iconName = 'arrow-forward';
   }
 
   return iconName;

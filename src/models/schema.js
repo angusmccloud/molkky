@@ -19,19 +19,17 @@ export const schema = {
                 },
                 "players": {
                     "name": "players",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": true,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
                 },
                 "scores": {
                     "name": "scores",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
                 },
                 "gameStatus": {
                     "name": "gameStatus",
@@ -49,11 +47,24 @@ export const schema = {
                 },
                 "turns": {
                     "name": "turns",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
+                },
+                "whichPlayersTurn": {
+                    "name": "whichPlayersTurn",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "gameRound": {
+                    "name": "gameRound",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -138,19 +149,17 @@ export const schema = {
                 },
                 "friends": {
                     "name": "friends",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
                 },
                 "gameHistory": {
                     "name": "gameHistory",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
                 },
                 "stats": {
                     "name": "stats",
@@ -182,11 +191,10 @@ export const schema = {
                 },
                 "turnHistory": {
                     "name": "turnHistory",
-                    "isArray": true,
+                    "isArray": false,
                     "type": "AWSJSON",
                     "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -249,5 +257,5 @@ export const schema = {
     },
     "enums": {},
     "nonModels": {},
-    "version": "9ee3daf335710b25a877f215ea15571d"
+    "version": "c45da05a5b4c606cb58ac85841627324"
 };

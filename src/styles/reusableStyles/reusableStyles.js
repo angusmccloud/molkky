@@ -3,8 +3,7 @@ import * as colors from '../colors/colors';
 import * as typography from '../typography/typography';
 
 const dim = Dimensions.get('screen');
-const width = dim.width;
-const height = dim.height;
+const { width, height } = dim;
 
 const reusableStyles = StyleSheet.create({
   pageWrapper: {

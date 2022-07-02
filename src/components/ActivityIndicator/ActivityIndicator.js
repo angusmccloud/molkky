@@ -1,11 +1,11 @@
 import React from "react";
-import { ActivityIndicator as RNActivityIndicator } from "react-native";
+import { MaterialIndicator } from 'react-native-indicators';
 import { colors } from '../../styles';
 
 const ActivityIndicator = (props) => {
-  const { color = colors.primaryBlue, size = 'large' } = props;
+  const { color = colors.primaryBlue, size = 20, ...restOfProps } = props;
   return (
-    <RNActivityIndicator size={size} color={color} />
+    <MaterialIndicator size={size} color={color} {...restOfProps} />
   )
 };
 

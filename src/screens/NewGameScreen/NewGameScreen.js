@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Pressable, TextInput, Switch } from 'react-native';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { View, TextInput, Switch } from 'react-native';
 import { StackActions } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Games } from '../../models';
 import uuid from 'react-native-uuid';
-import { Button, Text, Icon, ListItemSeparator, IconButton, ActivityIndicator } from '../../components';
+import { Button, Text, ListItemSeparator, IconButton, ActivityIndicator } from '../../components';
 import styles from './NewGameScreenStyles';
 import { colors, typography } from '../../styles';
-import { AuthModal } from '../../containers';
-import { checkAuthStatus, DataStore } from '../../utils';
+import { DataStore } from '../../utils';
+import { AuthContext } from '../../contexts';
 
 const NewGameScreen = ({ navigation, route }) => {
-  const [authStatus, setAuthStatus] = useState();
   const [error, setError] = useState('');
   const [winningScore, setWinningScore] = useState('50');
   const [goBackToScore, setGoBackToScore] = useState('25');
@@ -20,6 +19,7 @@ const NewGameScreen = ({ navigation, route }) => {
   const [players, setPlayers] = useState([]);
   const [readyToStart, setReadyToStart] = useState(false);
   const [creatingGame, setCreatingGame] = useState(false);
+  const authStatus = useContext(AuthContext).authStatus;
 
   const ref_goBackToScore = useRef();
 
@@ -74,7 +74,7 @@ const NewGameScreen = ({ navigation, route }) => {
             userType: player.userType,
           })),
           scores: players.map(player => ({
-            id: player.id,
+            playerId: player.id,
             score: 0,
           })),
           gameStatus: 'inProgress',
@@ -85,6 +85,8 @@ const NewGameScreen = ({ navigation, route }) => {
             outAfterThreeTimesOver,
           },
           turns: [],
+          whichPlayersTurn: players[0].id,
+          gameRound: 1,
         })
       );
       // console.log('-- And saved in the DataStore --', gameDb);
@@ -110,16 +112,6 @@ const NewGameScreen = ({ navigation, route }) => {
       setReadyToStart(true);
     }
   }, [players, winningScore, goBackToScore]);
-
-  useEffect(() => {
-    const getAuthStatus = async () => {
-      const auth = await checkAuthStatus();
-      setAuthStatus(auth);
-      setPlayers([{ name: auth.name, id: auth.id, userType: 'registered' }]);
-    };
-
-    getAuthStatus();
-  }, []);
 
   return (
     <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
@@ -190,7 +182,7 @@ const NewGameScreen = ({ navigation, route }) => {
           />
         </View>
         <ListItemSeparator />
-        <View style={styles.twoButtonWrapper}>
+        <View style={styles.buttonsWrapper}>
           <Button text={'Add Friend'} onPress={addFriend} disabled={creatingGame} />
           <Button text={'Add Newbie'} onPress={addNewPlayer} disabled={creatingGame} />
         </View>
@@ -212,7 +204,7 @@ const NewGameScreen = ({ navigation, route }) => {
             <IconButton iconName={'close'} size={typography.fontSizeXL} variant='warning' onPress={() => removePlayer(player.id)} />
           </View>
         ))}
-        <View style={styles.twoButtonWrapper}>
+        <View style={styles.buttonsWrapper}>
           {creatingGame ? (
             <ActivityIndicator size='large' color={colors.primaryBlue} />
           ) : (

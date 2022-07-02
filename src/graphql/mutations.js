@@ -14,6 +14,8 @@ export const createGames = /* GraphQL */ `
       gameStatus
       rules
       turns
+      whichPlayersTurn
+      gameRound
       createdAt
       updatedAt
       _version
@@ -35,6 +37,8 @@ export const updateGames = /* GraphQL */ `
       gameStatus
       rules
       turns
+      whichPlayersTurn
+      gameRound
       createdAt
       updatedAt
       _version
@@ -56,6 +60,8 @@ export const deleteGames = /* GraphQL */ `
       gameStatus
       rules
       turns
+      whichPlayersTurn
+      gameRound
       createdAt
       updatedAt
       _version

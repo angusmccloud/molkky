@@ -1,7 +1,6 @@
 import React from 'react';
 import { Text as RNText } from 'react-native';
 import { colors, typography } from '../../styles';
-import { useFonts } from 'expo-font';
 
 const Text = ({ 
   size = 'M',
@@ -13,16 +12,6 @@ const Text = ({
   numberOfLines = 0,
   ...rest
  }) => {
-  [fontsLoaded] = useFonts({
-    'SlalomSans-Light': require('../../assets/fonts/SlalomSans-Light.otf'),
-    'SlalomSans-Regular': require('../../assets/fonts/SlalomSans-Regular.otf'),
-    'SlalomSans-Bold': require('../../assets/fonts/SlalomSans-Bold.otf'),
-  });
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
   const fontFamily = bold ? 'SlalomSans-Bold' : light ? 'SlalomSans-Light' : 'SlalomSans-Regular';
 
   return (
@@ -62,6 +51,8 @@ const getSize = (size) => {
       return typography.fontSizeXL;
     case 'XXL':
       return typography.fontSizeXXL;
+    case 'XXXL':
+      return typography.fontSizeXXXL;
     default:
       return typography.fontSizeM;
   }

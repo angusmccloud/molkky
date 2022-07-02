@@ -1,8 +1,7 @@
 import { PixelRatio, Dimensions } from 'react-native';
 
 const dim = Dimensions.get('screen');
-const width = dim.width;
-const height = dim.height;
+const { width, height } = dim;
 const tablet = Math.max(height, width) > 900 ? true : false;
 
 const scaleFont = (size) => {
@@ -22,3 +21,4 @@ export const fontSizeM = scaleFont(tablet ? 18 : 16);
 export const fontSizeL = scaleFont(tablet ? 22 : 20);
 export const fontSizeXL = scaleFont(tablet ? 26 : 24);
 export const fontSizeXXL = scaleFont(tablet ? 36: 28);
+export const fontSizeXXXL = scaleFont(tablet ? 58: 48);

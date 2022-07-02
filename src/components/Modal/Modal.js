@@ -1,3 +1,4 @@
+import React from "react"
 import RNModal from "react-native-modal";
 
 // TO-DO: Import both React-Native Modal and OOTB Modal
