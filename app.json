@@ -18,13 +18,17 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.connortyrrell.molkky",
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+        "backgroundColor": "#0c62fb"
+      },
+      "package": "com.connortyrrell.molkky",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
