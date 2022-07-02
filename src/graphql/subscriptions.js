@@ -13,6 +13,7 @@ export const onCreateGames = /* GraphQL */ `
       turns
       whichPlayersTurn
       gameRound
+      winningPlayerId
       createdAt
       updatedAt
       _version
@@ -33,6 +34,7 @@ export const onUpdateGames = /* GraphQL */ `
       turns
       whichPlayersTurn
       gameRound
+      winningPlayerId
       createdAt
       updatedAt
       _version
@@ -53,6 +55,7 @@ export const onDeleteGames = /* GraphQL */ `
       turns
       whichPlayersTurn
       gameRound
+      winningPlayerId
       createdAt
       updatedAt
       _version

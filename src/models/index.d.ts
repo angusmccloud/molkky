@@ -22,6 +22,7 @@ export declare class Games {
   readonly turns?: string | null;
   readonly whichPlayersTurn?: string | null;
   readonly gameRound?: number | null;
+  readonly winningPlayerId?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   constructor(init: ModelInit<Games, GamesMetaData>);

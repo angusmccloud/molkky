@@ -66,6 +66,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "winningPlayerId": {
+                    "name": "winningPlayerId",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -257,5 +264,5 @@ export const schema = {
     },
     "enums": {},
     "nonModels": {},
-    "version": "c45da05a5b4c606cb58ac85841627324"
+    "version": "ab15a29f131cb3ef1b9777bf5dae7347"
 };

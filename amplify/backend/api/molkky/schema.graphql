@@ -8,6 +8,7 @@ type Games @model @auth(rules: [{allow: public, operations: [read]}, {allow: pri
   turns: AWSJSON
   whichPlayersTurn: String
   gameRound: Int
+  winningPlayerId: String
 }
 
 type Users @model @auth(rules: [{allow: public, operations: [read, create]}, {allow: private, operations: [read, create]}, {allow: owner, operations: [update, delete, create]}]) {
