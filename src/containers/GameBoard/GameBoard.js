@@ -46,7 +46,7 @@ const GameBoard = (props) => {
       wentOver: startingScore + score > rules.winningScore,
       eliminated: false, // Update this
     };
-    console.log('-- This Turn --', thisTurn);
+    // console.log('-- This Turn --', thisTurn);
     const newTurns = [...turns, thisTurn];
     // console.log('-- currentPlayerIndex --', currentPlayerIndex);
     // console.log('-- New Turns --', newTurns);
@@ -105,7 +105,6 @@ const GameBoard = (props) => {
       console.log('error posting Undo Turn', err)
       // setIsLoading(false);
     }
-
   }
 
   const skipTurn = async () => {
@@ -144,6 +143,31 @@ const GameBoard = (props) => {
       );
     } catch (err) {
       console.log('error posting Skip Turn', err)
+      // setIsLoading(false);
+    }
+  }
+
+  const playAgain = async () => {
+    console.log('-- Start New Game --');
+    try {
+      // console.log('-- Datastore Save Attampt -- ');
+      await DataStore.save(
+        new Games({
+          owner: game.owner,
+          players: game.players,
+          scores: game.players.map(player => ({
+            playerId: player.id,
+            score: 0,
+          })),
+          gameStatus: 'inProgress',
+          rules: game.rules,
+          turns: [],
+          whichPlayersTurn: game.players[0].id,
+          gameRound: 1,
+        })
+      );
+    } catch (err) {
+      console.log('error starting new game', err)
       // setIsLoading(false);
     }
   }
