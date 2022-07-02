@@ -40,7 +40,7 @@ const getIconName = (name) => {
     iconName = 'arrow-forward-circle-outline';
   } else if (name === 'skip') {
     iconName = 'arrow-redo-outline';
-  } else if (name === 'wentOver') { 
+  } else if (name === 'wentOver') {
     iconName = 'refresh-outline';
   } else if (name === 'winner') {
     iconName = 'trophy';

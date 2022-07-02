@@ -7,8 +7,8 @@ const UserScreen = ({ navigation, route }) => {
  
   return (
     <View style={styles.pageWrapper}>
-      <Text>
-        User Screen
+      <Text size='XL'>
+        ...Coming Soon...
       </Text>
     </View>
   );

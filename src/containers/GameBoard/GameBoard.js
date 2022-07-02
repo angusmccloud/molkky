@@ -8,6 +8,7 @@ import { DataStore } from '../../utils';
 import { Games } from '../../models';
 
 const GameBoard = (props) => {
+  const [turnPosting, setTurnPosting] = useState(false);
 
   const { game } = props;
   // const { createdAt, gameStatus, id, rules, whichPlayersTurn, gameRound } = props.game;
@@ -15,7 +16,8 @@ const GameBoard = (props) => {
   // console.log('-- Game Props --', game);
 
   const logScore = async (score) => {
-    console.log('-- Score --', score);
+    // console.log('-- Score --', score);
+    setTurnPosting(true);
 
     const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
     const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
@@ -48,11 +50,8 @@ const GameBoard = (props) => {
     };
     // console.log('-- This Turn --', thisTurn);
     const newTurns = [...turns, thisTurn];
-    // console.log('-- currentPlayerIndex --', currentPlayerIndex);
-    // console.log('-- New Turns --', newTurns);
 
     try {
-      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
@@ -63,14 +62,15 @@ const GameBoard = (props) => {
           updatedGame.winningPlayerId = winningTurn ? whichPlayersTurn : game.winningPlayerId;
         })
       );
+      setTurnPosting(false);
     } catch (err) {
       console.log('error posting Score Items', err)
-      // setIsLoading(false);
+      setTurnPosting(false);
     }
   }
 
   const undoTurn = async () => {
-    // console.log('-- Undo --');
+    setTurnPosting(true);
 
     const lastTurn = turns[turns.length - 1];
     // console.log('-- Last Turn --', lastTurn);
@@ -90,7 +90,6 @@ const GameBoard = (props) => {
     });
 
     try {
-      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
@@ -101,14 +100,15 @@ const GameBoard = (props) => {
           updatedGame.winningPlayerId = null;
         })
       );
+      setTurnPosting(false);
     } catch (err) {
       console.log('error posting Undo Turn', err)
-      // setIsLoading(false);
+      setTurnPosting(false);
     }
   }
 
   const skipTurn = async () => {
-    // console.log('-- Skip Turn --');
+    setTurnPosting(true);
 
     const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
     const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
@@ -129,11 +129,8 @@ const GameBoard = (props) => {
     };
     // console.log('-- This Turn --', thisTurn);
     const newTurns = [...turns, thisTurn];
-    // console.log('-- currentPlayerIndex --', currentPlayerIndex);
-    // console.log('-- New Turns --', newTurns);
 
     try {
-      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         Games.copyOf(game, updatedGame => {
           updatedGame.whichPlayersTurn = nextPlayerId;
@@ -141,16 +138,16 @@ const GameBoard = (props) => {
           updatedGame.gameRound = newRound;
         })
       );
+      setTurnPosting(false);
     } catch (err) {
-      console.log('error posting Skip Turn', err)
-      // setIsLoading(false);
+      console.log('error posting Skip Turn', err);
+      setTurnPosting(false);
     }
   }
 
   const playAgain = async () => {
-    console.log('-- Start New Game --');
+    setTurnPosting(true);
     try {
-      // console.log('-- Datastore Save Attampt -- ');
       await DataStore.save(
         new Games({
           owner: game.owner,
@@ -166,9 +163,10 @@ const GameBoard = (props) => {
           gameRound: 1,
         })
       );
+      setTurnPosting(false);
     } catch (err) {
       console.log('error starting new game', err)
-      // setIsLoading(false);
+      setTurnPosting(false);
     }
   }
 
@@ -225,55 +223,55 @@ const GameBoard = (props) => {
           <>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(1)} text='1' />
+                <Button onPress={() => logScore(1)} text='1' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(2)} text='2' />
+                <Button onPress={() => logScore(2)} text='2' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(3)} text='3' />
+                <Button onPress={() => logScore(3)} text='3' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(4)} text='4' />
+                <Button onPress={() => logScore(4)} text='4' disabled={turnPosting} />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(5)} text='5' />
+                <Button onPress={() => logScore(5)} text='5' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(6)} text='6' />
+                <Button onPress={() => logScore(6)} text='6' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(7)} text='7' />
+                <Button onPress={() => logScore(7)} text='7' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(8)} text='8' />
+                <Button onPress={() => logScore(8)} text='8' disabled={turnPosting} />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(9)} text='9' />
+                <Button onPress={() => logScore(9)} text='9' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(10)} text='10' />
+                <Button onPress={() => logScore(10)} text='10' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(11)} text='11' />
+                <Button onPress={() => logScore(11)} text='11' disabled={turnPosting} />
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(12)} text='12' />
+                <Button onPress={() => logScore(12)} text='12' disabled={turnPosting} />
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo' disabled={turns.length === 0} />
+                <Button onPress={() => undoTurn()} text='Undo' disabled={turns.length === 0 || turnPosting} />
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => logScore(0)} text='0' />
+                <Button onPress={() => logScore(0)} text='0' disabled={turnPosting} />
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => skipTurn()} text='Skip' />
+                <Button onPress={() => skipTurn()} text='Skip' disabled={turnPosting} />
               </View>
             </View>
           </>
@@ -286,10 +284,10 @@ const GameBoard = (props) => {
           </View>
           <View style={styles.buttonsWrapper}>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0} />
+                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0 || turnPosting} />
               </View>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => playAgain()} text='Play Again' />
+                <Button onPress={() => playAgain()} text='Play Again' disabled={turnPosting} />
               </View>
             </View>
             </>
