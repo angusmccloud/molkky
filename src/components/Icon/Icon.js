@@ -48,6 +48,10 @@ const getIconName = (name) => {
     iconName = 'play'
   } else if (name === 'trash') {
     iconName = 'trash-outline';
+  } else if (name === 'stats') {
+    iconName = 'stats-chart';
+  } else if (name === 'statsFocused') {
+    iconName = 'stats-chart-outline';
   }
 
   return iconName;

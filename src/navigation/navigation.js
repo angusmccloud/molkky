@@ -6,10 +6,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   HomeScreen,
   NewGameScreen,
-  UserScreen,
   RulesScreen,
+  StatsScreen,
 } from '../screens';
-import { colors, lightTheme, darkTheme, typography} from '../styles';
+import { colors, lightTheme, darkTheme} from '../styles';
 import { Icon, Text } from '../components';
 import { AuthModal } from '../containers';
 import { ThemeContext } from '../contexts';
@@ -24,8 +24,8 @@ const stackNavOptions = {
 };
 
 const HomeStack = createNativeStackNavigator();
-const UserStack = createNativeStackNavigator();
 const RulesStack = createNativeStackNavigator();
+const StatsStack = createNativeStackNavigator();
 
 const HomeStackScreen = () => {
   return (
@@ -36,19 +36,19 @@ const HomeStackScreen = () => {
   );
 }
 
-const UserStackScreen = () => {
-  return (
-    <UserStack.Navigator screenOptions={stackNavOptions}>
-      <UserStack.Screen name="User" component={UserScreen} />
-    </UserStack.Navigator>
-  );
-}
-
 const RulesStackScreen = () => {
   return (
     <RulesStack.Navigator screenOptions={stackNavOptions}>
       <RulesStack.Screen name="Rules" component={RulesScreen} />
     </RulesStack.Navigator>
+  );
+}
+
+const StatsStackScreen = () => {
+  return (
+    <StatsStack.Navigator screenOptions={stackNavOptions}>
+      <StatsStack.Screen name="Stats" component={StatsScreen} />
+    </StatsStack.Navigator>
   );
 }
 
@@ -83,10 +83,10 @@ const Navigation = () => {
                 let iconName;
                 if (route.name === 'HomeStack') {
                   iconName = focused ? 'home' : 'homeFocused';
-                } else if (route.name === 'UserStack') {
-                  iconName = focused ? 'user' : 'userFocused';
                 } else if (route.name === 'RulesStack') {
                   iconName = focused ? 'rules' : 'rulesFocused';
+                } else if (route.name === 'StatsStack') {
+                  iconName = focused ? 'stats' : 'statsFocused';
                 }
                 return <Icon name={iconName} size={size} color={color} />;
               },
@@ -95,8 +95,8 @@ const Navigation = () => {
             })}
           >
             <Tab.Screen name="HomeStack" component={HomeStackScreen} options={{ headerShown: false, title: 'Home' }} />
-            <Tab.Screen name="UserStack" component={UserStackScreen} options={{ headerShown: false, title: 'User' }} />
             <Tab.Screen name="RulesStack" component={RulesStackScreen} options={{ headerShown: false, title: 'Rules' }} />
+            <Tab.Screen name="StatsStack" component={StatsStackScreen} options={{ headerShown: false, title: 'Stats' }} />
           </Tab.Navigator>
         </NavigationContainer>
       </PaperProvider>

@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
 import { View } from 'react-native';
 import { Button, Text } from '../../components';
-import styles from './UserScreenStyles';
+import styles from './StatsScreenStyles';
 
-const UserScreen = ({ navigation, route }) => {
+const StatsScreen = ({ navigation, route }) => {
  
   return (
     <View style={styles.pageWrapper}>
@@ -14,4 +14,4 @@ const UserScreen = ({ navigation, route }) => {
   );
 }
 
-export default UserScreen;
+export default StatsScreen;
