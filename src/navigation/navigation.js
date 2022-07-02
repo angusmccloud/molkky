@@ -9,7 +9,7 @@ import {
   UserScreen,
   RulesScreen,
 } from '../screens';
-import { colors, lightTheme, darkTheme} from '../styles';
+import { colors, lightTheme, darkTheme, typography} from '../styles';
 import { Icon, Text } from '../components';
 import { AuthModal } from '../containers';
 import { ThemeContext } from '../contexts';

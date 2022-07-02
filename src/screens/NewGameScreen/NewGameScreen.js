@@ -323,7 +323,7 @@ const NewGameScreen = ({ navigation, route }) => {
         <View style={styles.modalBackground}>
           <View style={styles.modalBody}>
             <View style={styles.modalHeader}>
-              <View style={{ flex: 2, alignItems: "flex-end" }}>
+              <View style={{ flex: 2, alignItems: "flex-start" }}>
                 <Text color={colors.white} bold size="M">
                   Add Friends
                 </Text>
@@ -380,7 +380,7 @@ const PlayerWithGamesPlayed = (props) => {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <View style={{ paddingRight: 5 }}>
-        <Avatar name={player.name} size={50} />
+        <Avatar name={player.name} size={typography.fontSizeXXXL} />
       </View>
       <View>
         <Text size="M" bold>{player.name}</Text>
