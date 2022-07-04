@@ -162,7 +162,7 @@ const NewGameScreen = ({ navigation, route }) => {
         const users = await DataStore.query(Users, u => u.owner("eq", authStatus.id));
         const user = users[0];
         const friends = user.friends ? user.friends : [];
-        setExistingFriends(friends);
+        setExistingFriends(friends.slice().sort((a, b) => a.name.localeCompare(b.name)));
       } catch (e) {
         console.log('-- Error loading your friends', e)
       }

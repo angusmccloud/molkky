@@ -52,6 +52,10 @@ const getIconName = (name) => {
     iconName = 'stats-chart';
   } else if (name === 'statsFocused') {
     iconName = 'stats-chart-outline';
+  } else if (name === 'collapsed') { 
+    iconName = 'chevron-up-outline';
+  } else if (name === 'expanded') {
+    iconName = 'chevron-down-outline';
   }
 
   return iconName;
