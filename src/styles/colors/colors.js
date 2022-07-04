@@ -51,5 +51,89 @@ export const avatarColors = [
   {
     color: darkOrange,
     textColor: white
+  },
+  {
+    color: '#D949D7',
+    textColor: white,
+  },
+  {
+    color: '#FF4F9E',
+    textColor: white,
+  },
+  {
+    color: '#FF866C',
+    textColor: black,
+  },
+  {
+    color: '#FFC354',
+    textColor: black,
+  },
+  {
+    color: '#F9F871',
+    textColor: black,
+  },
+  {
+    color: '#9F9DD3',
+    textColor: black,
+  },
+  {
+    color: '#EFEDFF',
+    textColor: black,
+  },
+  {
+    color: '#BFA975',
+    textColor: black,
+  },
+  {
+    color: '#BFA975',
+    textColor: black,
+  },
+  {
+    color: '#FFEFCA',
+    textColor: black,
+  },
+  {
+    color: '#847655',
+    textColor: white
+  },
+  {
+    color: '#464555',
+    textColor: white
+  },
+  {
+    color: '#ABA9BC',
+    textColor: black
+  },
+  {
+    color: '#E80038',
+    textColor: white
+  },
+  {
+    color: '#FF4966',
+    textColor: white
+  },
+  {
+    color: '#4F8987',
+    textColor: white
+  },
+  {
+    color: '#6AFBCF',
+    textColor: black
+  },
+  {
+    color: '#00D6F4',
+    textColor: black
+  },
+  {
+    color: '#D03400',
+    textColor: white
+  },
+  {
+    color: '#A8A6DD',
+    textColor: black
+  },
+  {
+    color: '#464555',
+    textColor: white
   }
 ];

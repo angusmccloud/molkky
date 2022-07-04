@@ -4,10 +4,9 @@ import shuffleSeed from 'shuffle-seed';
 import { colors, typography } from '../../styles';
 import Text from '../Text/Text';
 import ImageS3 from '../ImageS3/ImageS3';
-import { color } from 'react-native-reanimated';
 
 const Avatar = (props) => {
-  const [staticColors, setStaticColors] = useState({color: color.primaryBlue, textColor: color.white});
+  const [staticColors, setStaticColors] = useState({color: colors.primaryBlue, textColor: colors.white});
   const [borderRadius, setBorderRadius] = useState(0);
   const [initials, setInitials] = useState('');
 
@@ -21,7 +20,7 @@ const Avatar = (props) => {
     }
     setInitials(newInitials);
     const possibleColors = [ ...colors.avatarColors ];
-    const randomColors = shuffleSeed.shuffle(possibleColors, newInitials);
+    const randomColors = shuffleSeed.shuffle(possibleColors, name);
     setStaticColors(randomColors[0]);
   }, [name]);
 
