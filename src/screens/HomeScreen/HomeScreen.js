@@ -77,7 +77,9 @@ const HomeScreen = ({ navigation, route }) => {
           sort: s => s.createdAt(SortDirection.DESCENDING)
         });
 
-        setActiveGames(gamesData);
+        if(gamesData !== activeGames) {
+          setActiveGames(gamesData);
+        }
         // console.log('-- gamesData --', gamesData);
       } catch (err) { console.log('error fetching Games', err) }
     }
