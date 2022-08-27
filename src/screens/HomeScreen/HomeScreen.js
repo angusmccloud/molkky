@@ -77,23 +77,13 @@ const HomeScreen = ({ navigation, route }) => {
           sort: s => s.createdAt(SortDirection.DESCENDING)
         });
 
-        if(gamesData !== activeGames) {
+        if (gamesData !== activeGames) {
           setActiveGames(gamesData);
         }
         // console.log('-- gamesData --', gamesData);
       } catch (err) { console.log('error fetching Games', err) }
     }
   }
-
-  useFocusEffect(
-    React.useCallback(() => {
-      const subscription = DataStore.observe(Games).subscribe((game) => {
-        // console.log('-- SUBSCRIPTION EVENT --');
-        fetchGames();
-      });
-      return () => subscription.unsubscribe();
-    }, [])
-  );
 
   useEffect(() => {
     navigation.setOptions({
@@ -117,6 +107,15 @@ const HomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     fetchGames();
   }, [authStatus]);
+
+  useEffect(() => {
+    const subscription = DataStore.observe(Games).subscribe((game) => {
+      // console.log('-- SUBSCRIPTION EVENT --');
+      fetchGames();
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <View style={styles.pageWrapper}>
@@ -143,7 +142,7 @@ const HomeScreen = ({ navigation, route }) => {
               <Text>
                 Start your first game now
               </Text>
-              <View style={{paddingTop: 20}}>
+              <View style={{ paddingTop: 20 }}>
                 <Button onPress={() => navigation.navigate('New Game')} text="Start New Game" />
               </View>
             </>
