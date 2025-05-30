@@ -1,4 +1,4 @@
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 export const signUpNewUser = (email, password) => {
   const auth = getAuth();
@@ -51,7 +51,15 @@ export const signOutUser = () => {
 
 export const getCurrentUser = () => {
   const auth = getAuth();
-  return auth.currentUser;
+  return new Promise((resolve, reject) => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        resolve(user);
+      } else {
+        reject(new Error('No user is currently signed in.'));
+      }
+    });
+  });
 };
 
 export const isUserSignedIn = () => {

@@ -6,10 +6,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
 import { initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import firebaseConfig from '@/constants/firebaseConfig';
 import { lightTheme, darkTheme } from '@/constants/Colors';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 import 'react-native-reanimated';
 
@@ -35,17 +36,20 @@ export default function RootLayout() {
   }
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  setPersistence(auth, browserLocalPersistence);
+  const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
 
   return (
     <PaperProvider theme={colorScheme === 'dark' ? darkTheme : lightTheme}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
+        <AuthProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </AuthProvider>
       </ThemeProvider>
     </PaperProvider>
   );
