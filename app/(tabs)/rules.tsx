@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, Image } from 'react-native';
 import Text, { TextSizes } from '@/components/Text';
 import Divider from '@/components/Divider';
-import { PageWrapper } from '@/components/PageWrapper';
+import PageWrapper from '@/components/PageWrapper';
 import useDeviceDimensions from '@/hooks/useDeviceDimensions';
 const formation = require('@/assets/images/formation.png');
 

@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import Text from '@/components/Text';
-import { PageWrapper } from '@/components/PageWrapper';
+import PageWrapper from '@/components/PageWrapper';
 import Avatar from '@/components/Avatar';
 import Button from '@/components/Button';
 import Divider from '@/components/Divider';
@@ -42,7 +42,7 @@ export default function HomeScreen() {
           onChangeText={(text) => console.log(text)}
           style={{ margin: 10 }}
         />
-        {error && <Text style={{ color: 'red' }}>{error}</Text>} {/* Display error */}
+        {error && <Text style={{ color: 'red' }}>{error}</Text>}
         <Text>
           {loading ? 'Loading user...' : user ? `Welcome, ${user.email}` : 'No user found'}
         </Text>
