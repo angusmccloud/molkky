@@ -1,13 +1,22 @@
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "firebase/auth";
 
-export const signUpNewUser = (email, password) => {
+export const signUpNewUser = (email, password, displayName) => {
   const auth = getAuth();
   return createUserWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       // Signed up 
       console.log("User signed up successfully:", userCredential);
       const user = userCredential.user;
-      return user;
+      // Update the user's profile with the display name
+      return updateProfile(user, { displayName: displayName })
+        .then(() => {
+          console.log("User profile updated successfully");
+          return user;
+        })
+        .catch((error) => {
+          console.error("Error updating user profile:", error);
+          throw new Error(`Error updating profile: ${error.message}`);
+        });
     })
     .catch((error) => {
       console.error("Error signing up user:", error);

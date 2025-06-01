@@ -5,7 +5,7 @@ import Button from '@/components/Button';
 import Text from '@/components/Text';
 import styles from './GameBoardStyles';
 import PlayerStatus from './PlayerStatus';
-import { updateGame, createGame } from '@/services/firebaseDatabase';
+import { updateGame, createGame } from '@/services/games';
 
 const GameBoard = (props) => {
   const [turnPosting, setTurnPosting] = useState(false);

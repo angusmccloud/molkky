@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
-import { createGame } from '@/services/firebaseDatabase';
+import { createGame } from '@/services/games';
 
 const NewGameScreen = () => {
   const [gameName, setGameName] = useState('');

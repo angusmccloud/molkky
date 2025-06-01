@@ -1,13 +1,20 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { signUpNewUser, signInUser, signOutUser } from '@/services/auth';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, User as firebaseUser } from 'firebase/auth';
+
+// Define a User type that extends Firebase's user by adding additional properties (name, friends)
+export interface User extends firebaseUser {
+  name?: string; // Optional name property
+  friends?: string[]; // Optional friends list
+}
 
 // Define the shape of the AuthContext
 interface AuthContextType {
   user: User | null;
+  isAuthenticated: boolean;
   loading: boolean;
-  error: string | null; // Add error state
-  signUp: (email: string, password: string) => Promise<void>;
+  error: string | null; 
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -35,10 +42,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = async (email: string, password: string, displayName: string): Promise<void> => {
     setError(null); // Reset error state
     try {
-      const newUser = await signUpNewUser(email, password);
+      const newUser = await signUpNewUser(email, password, displayName);
       setUser(newUser);
     } catch (error: any) {
       setError(error.message); // Set error message
@@ -66,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, error, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

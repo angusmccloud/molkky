@@ -4,7 +4,7 @@ import Text from '@/components/Text';
 import Avatar from '@/components/Avatar';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
-import { fetchGamesByUser } from '@/services/firebaseDatabase';
+import { fetchGamesByUser } from '@/services/games';
 
 const StatsScreen = () => {
   const [stats, setStats] = useState([]);

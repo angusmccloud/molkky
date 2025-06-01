@@ -1,59 +1,70 @@
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
+import { ScrollView } from 'react-native';
 import Text from '@/components/Text';
 import PageWrapper from '@/components/PageWrapper';
-import Avatar from '@/components/Avatar';
 import Button from '@/components/Button';
-import Divider from '@/components/Divider';
-import IconButton from '@/components/IconButton';
-import TextInput from '@/components/TextInput';
-import ActivityIndicator from '@/components/ActivityIndicator';
-import { AuthContext } from '@/contexts/AuthContext'; // Import AuthContext and its type
-import { ScrollView } from 'react-native';
+import { AuthContext } from '@/contexts/AuthContext';
+import { createGame, getGame } from '@/services/games';
+import AuthModal from '@/containers/AuthModal';
 
 export default function HomeScreen() {
   const authContext = useContext(AuthContext);
   if (!authContext) {
     throw new Error('AuthContext must be used within an AuthProvider');
   }
+  const { user, loading, error, signUp, signIn } = authContext;
 
-  const { user, loading, error, signUp, signIn } = authContext; // Safely destructure context values
+  const createTestGame = async () => {
+    if(user) {
+      const newGame = await createGame(
+        {
+          uid: user.uid,
+          players: [
+            { id: user.uid, name: 'Connor Tyrrell'},
+            { id: 'abc123', name: 'Indigo Miller'},
+            { id: 'xyz321', name: 'Anna Wilson'},
+          ],
+          scores: [
+            { playerId: user.uid, score: 0 },
+            { playerId: 'abc123', score: 0 },
+            { playerId: 'xyz321', score: 0 },
+          ],
+          gameStatus: 'inProgress',
+          rules: {
+            winningScore: 50,
+            goBackToScore: 25,
+            outAfterThreeMisses: false,
+            outAfterThreeTimesOver: false,
+          },
+          turns: [],
+          whichPlayersTurn: user.uid,
+          gameRound: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      );
+      
+      if(newGame) {
+        const gameId = newGame?.id; // Assuming createGame returns the game object with an id
+        console.log('Game created, in Index:', gameId);
+        const fetchedGame = await getGame(gameId);
+        console.log('Fetched Game:', fetchedGame);
+      } else {
+        console.error('Failed to create game');
+      }
+    }
+  };
 
   return (
     <PageWrapper>
       <ScrollView>
-        <Text>Home Page Placeholder</Text>
-        <Avatar name={user ? user.email : 'Guest'} />
-        <Divider />
-        <Button onPress={() => signUp('connort@gmail.com', 'abc123!@#')}>
-          Create Test Account
+        <AuthModal />
+        <Button onPress={createTestGame}>
+          Create Test Game
         </Button>
-        <Button onPress={() => signIn('connort@gmail.com', 'abc123!@#')}>
-          Sign In Test Account
-        </Button>
-        <IconButton
-          icon='home'
-          onPress={() => alert('Icon Button Pressed!')}
-          size={24}
-        />
-        <ActivityIndicator size={50} />
-        <TextInput
-          placeholder='Type something...'
-          label={'Input Label'}
-          onChangeText={(text) => console.log(text)}
-          style={{ margin: 10 }}
-        />
-        {error && <Text style={{ color: 'red' }}>{error}</Text>}
         <Text>
           {loading ? 'Loading user...' : user ? `Welcome, ${user.email}` : 'No user found'}
         </Text>
-        {user && (
-          <>
-            <Divider />
-            <Text>
-              {JSON.stringify(user, null, 2)}
-            </Text>
-          </>
-        )}
       </ScrollView>
     </PageWrapper>
   );
