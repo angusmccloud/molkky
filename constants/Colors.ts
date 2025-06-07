@@ -54,10 +54,12 @@ export const lightTheme = {
     onPrimary: white,
     primaryContainer: primaryBlue, // Used by AnimatedFAB
     onPrimaryContainer: white, // Used by AnimatedFAB
-    disabled: grayMedium,
+    disabled: 'grayMedium',
     onDisabled: primaryBlue,
     error: red,
     onError: white,
+    outline: grayDark,
+    onSurfaceVariant: grayDark,
   },
 };
 
@@ -89,6 +91,8 @@ export const darkTheme = {
     onDisabled: primaryBlue,
     error: red,
     onError: white,
+    outline: grayMedium,
+    onSurfaceVariant: grayMedium,
   },
 };
 
