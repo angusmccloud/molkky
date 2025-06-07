@@ -7,6 +7,11 @@ import Button from '@/components/Button';
 import { AuthContext } from '@/contexts/AuthContext';
 import MultiselectInput from '@/components/MultiSelectInput';
 import TextInput from '@/components/TextInput';
+import Chip from '@/components/Chip';
+import Icon from '@/components/Icon';
+import Avatar from '@/components/Avatar';
+import typography from '@/constants/Typography';
+import { TextSizes } from '@/components/Text';
 
 export default function HomeScreen() {
   const authContext = useContext(AuthContext);
@@ -56,6 +61,26 @@ export default function HomeScreen() {
           autoComplete="email"
           style={{ marginBottom: 10 }}
         />
+        <Chip
+          icon={(item) => (
+            <Avatar
+              name={'Indigo Miller'}
+              size={typography.fontSizeXS * 2}
+              textSize={TextSizes.S}
+              variant="circle"
+              absolute={false}
+            />
+          )}
+          closeIcon={() => (
+            <Icon
+              size={typography.fontSizeXS * 2}
+              name={"close"}
+            />
+          )}
+          onClose={() => console.log('Chip closed')}
+          >
+          Indigo Miller
+        </Chip>
       </ScrollView>
     </PageWrapper>
   );

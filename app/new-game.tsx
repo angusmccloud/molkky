@@ -13,6 +13,14 @@ import IconButton from '@/components/IconButton';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import useReusableStyles from '@/hooks/useReusableStyles';
 
+const mockFriends = [
+  { id: '1', name: 'Alice Smith' },
+  { id: '2', name: 'Bob Johnson' },
+  { id: '3', name: 'Charlie Brown' },
+  { id: '4', name: 'David Wilson' },
+  { id: '5', name: 'Eva Green' },
+];
+
 const NewGameScreen = () => {
   const [winningScore, setWinningScore] = useState('50');
   const [goBackToScore, setGoBackToScore] = useState('25');
