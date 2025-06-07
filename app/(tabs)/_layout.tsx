@@ -1,11 +1,12 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/navigation/HapticTab';
 import TabBarBackground from '@/components/navigation/TabBarBackground';
 import Icon from '@/components/Icon';
+import AuthModal from '@/containers/AuthModal';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -14,12 +15,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
-        // headerShown: true,
         headerStyle: {
           backgroundColor: theme.colors.primary,
         },
-        // tabBarButton: HapticTab,
-        // tabBarBackground: TabBarBackground,
+        headerRight: () => {
+          return (
+            <View style={{marginRight: 10,}}>
+              <AuthModal />
+            </View>
+          )
+        },
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect

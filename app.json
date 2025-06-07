@@ -19,6 +19,7 @@
         "backgroundColor": "#0c62fb"
       },
       "package": "com.connortyrrell.molkky",
+      "softwareKeyboardLayoutMode": "pan",
       "versionCode": 2
     },
     "web": {
