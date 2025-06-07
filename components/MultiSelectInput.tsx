@@ -3,7 +3,6 @@ import { View, StyleSheet } from "react-native";
 import { useTheme } from "react-native-paper";
 import { MultiSelect, IMultiSelectRef } from 'react-native-element-dropdown';
 import Text, { TextSizes } from '@/components/Text';
-import TextInput from '@/components/TextInput';
 import typography from '@/constants/Typography';
 import useReusableStyles from '@/hooks/useReusableStyles';
 
