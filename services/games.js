@@ -7,7 +7,7 @@ export const createGame = async (game) => {
   try {
     const docRef = await addDoc(collection(db, "games"), game);
     console.log("Game created with ID: ", docRef.id);
-    return docRef; // Return the ID of the newly created game
+    return docRef.id; // Return the ID of the newly created game
   } catch (e) {
     console.error("Error creating game: ", e);
     return null;

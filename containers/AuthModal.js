@@ -184,7 +184,7 @@ const AuthModal = () => {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, alignItems: "flex-start" }}>
                 <Button
-                  variant="secondary"
+                  variant="onModalHeader"
                   onPress={closeModal}
                   size="small"
                 >

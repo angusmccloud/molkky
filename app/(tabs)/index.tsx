@@ -5,13 +5,15 @@ import Text from '@/components/Text';
 import PageWrapper from '@/components/PageWrapper';
 import Button from '@/components/Button';
 import { AuthContext } from '@/contexts/AuthContext';
-import MultiselectInput from '@/components/MultiSelectInput';
+import MultiSelectInput from '@/components/MultiSelectInput';
 import TextInput from '@/components/TextInput';
 import Chip from '@/components/Chip';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import typography from '@/constants/Typography';
 import { TextSizes } from '@/components/Text';
+
+import { createGame } from '@/services/games';
 
 export default function HomeScreen() {
   const authContext = useContext(AuthContext);
@@ -20,6 +22,15 @@ export default function HomeScreen() {
   }
   const { user, loading, error, signUp, signIn } = authContext;
   const router = useRouter();
+
+  const createTestGame = async () => {
+    try {
+      const game = await createGame({"createdAt": "2025-06-09T17:42:07.607Z", "gameRound": 1, "gameStatus": "inProgress", "players": [{"id": "abd312", "name": "Alice Smith"}, {"id": "49bncas", "name": "David Wilson"}, {"id": "ab78f196-dd17-4e75-8ab6-1b5748213b2d", "name": "Connor Tyrrell"}], "rules": {"goBackToScore": 25, "outAfterThreeMisses": false, "outAfterThreeTimesOver": false, "winningScore": 50}, "scores": [{"isOut": false, "isWinner": false, "misses": 0, "playerId": "abd312", "score": 0, "timesOver": 0}, {"isOut": false, "isWinner": false, "misses": 0, "playerId": "49bncas", "score": 0, "timesOver": 0}, {"isOut": false, "isWinner": false, "misses": 0, "playerId": "ab78f196-dd17-4e75-8ab6-1b5748213b2d", "score": 0, "timesOver": 0}], "turns": [], "uid": "W5r4NzqpFBXq3makaJG8cUgC0JZ2", "updatedAt": "2025-06-09T17:42:07.607Z", "whichPlayersTurn": "abd312"});
+      console.log('Game created successfully:', game);
+    } catch (error) {
+      console.error('Error creating game:', error);
+    }
+  };
 
   return (
     <PageWrapper>
@@ -30,7 +41,7 @@ export default function HomeScreen() {
         <Text>
           {loading ? 'Loading user...' : user ? `Welcome, ${user.email}` : 'No user found'}
         </Text>
-        <MultiselectInput
+        <MultiSelectInput
           key={'TestInput'}
           search={true}
           label="Select Options"
@@ -81,6 +92,9 @@ export default function HomeScreen() {
           >
           Indigo Miller
         </Chip>
+        <Button onPress={createTestGame}>
+          Create Test Game
+        </Button>
       </ScrollView>
     </PageWrapper>
   );

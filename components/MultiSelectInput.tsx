@@ -14,16 +14,17 @@ interface MultiselectInputProps extends IMultiSelectRef {
   focusPlaceholder?: string;
   valueField?: string;
   label?: string;
+  visibleSelectedItem?: boolean;
 }
 
 const MultiselectInput = (props: MultiselectInputProps) => {
-  const { values, setValues, data, placeholder, focusPlaceholder, valueField, label, ...restOfProps } = props;
+  const { values, setValues, data, placeholder, focusPlaceholder, valueField, label, visibleSelectedItem = false, ...restOfProps } = props;
   const theme = useTheme();
   const styles = useStyles(theme);
   const [isFocus, setIsFocus] = useState(false);
 
   const renderLabel = (label) => {
-    if (values?.length > 0 || isFocus) {
+    if (isFocus) {
       return (
         <View style={styles.dropdownLabelWrapper}>
           <Text style={[isFocus && { color: theme.colors.primary }]} size={TextSizes.XS}>
@@ -36,7 +37,7 @@ const MultiselectInput = (props: MultiselectInputProps) => {
   };
   return (
     <View style={styles.dropdownWrapper}>
-      {renderLabel(placeholder)}
+      {/* {renderLabel(placeholder)} */}
       <MultiSelect
         style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
         placeholderStyle={styles.dropdownPlaceholder}
@@ -55,6 +56,7 @@ const MultiselectInput = (props: MultiselectInputProps) => {
         }}
         inputSearchStyle={styles.searchFieldWrapper}
         containerStyle={styles.searchContainerStyle}
+        visibleSelectedItem={visibleSelectedItem}
         {...restOfProps}
       />
     </View>
