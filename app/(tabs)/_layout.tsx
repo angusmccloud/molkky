@@ -54,14 +54,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Icon name='rules' size={28} color={color} />,
         }}
       />
-      {/* Screens in Tab-Stack that we don't want to show */}
-      <Tabs.Screen
-        name="new-game"
-        options={{
-          title: 'New Game',
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }

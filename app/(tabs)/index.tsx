@@ -14,8 +14,10 @@ import typography from '@/constants/Typography';
 import { TextSizes } from '@/components/Text';
 
 import { createGame } from '@/services/games';
+import NewGameModal from '@/containers/NewGameModal';
 
 export default function HomeScreen() {
+  const [showNewGameModal, setShowNewGameModal] = useState(false);
   const authContext = useContext(AuthContext);
   if (!authContext) {
     throw new Error('AuthContext must be used within an AuthProvider');
@@ -32,12 +34,13 @@ export default function HomeScreen() {
     }
   };
 
+  const handleGameCreated = async (gameId: string) => {
+    console.log('New game created, back in homepage:', gameId);
+  };
+
   return (
     <PageWrapper>
       <ScrollView>
-        <Button onPress={() => router.navigate('/new-game')}>
-          Go to New Game Screen
-        </Button>
         <Text>
           {loading ? 'Loading user...' : user ? `Welcome, ${user.email}` : 'No user found'}
         </Text>
@@ -95,6 +98,14 @@ export default function HomeScreen() {
         <Button onPress={createTestGame}>
           Create Test Game
         </Button>
+        <Button onPress={() => setShowNewGameModal(true)}>
+          Show New Game Modal
+        </Button>
+        <NewGameModal
+          showModal={showNewGameModal}
+          closeModal={() => setShowNewGameModal(false)}
+          onGameCreated={handleGameCreated}
+        />
       </ScrollView>
     </PageWrapper>
   );
