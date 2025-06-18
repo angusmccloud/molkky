@@ -1,17 +1,66 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView } from 'react-native';
+import { useTheme } from 'react-native-paper';
 import Button from '@/components/Button';
 import Text from '@/components/Text';
-import styles from './GameBoardStyles';
 import PlayerStatus from './PlayerStatus';
-import { updateGame, createGame } from '@/services/games';
+import ActivityIndicator from '@/components/ActivityIndicator';
+import { getGame, updateGame, createGame } from '@/services/games';
+import useStyles from './GameBoardStyles';
+
 
 const GameBoard = (props) => {
   const [turnPosting, setTurnPosting] = useState(false);
+  const [game, setGame] = useState(null);
+  const { gameId, updateGameStatus, onGameCreated } = props;
 
-  const { game } = props;
-  const { createdAt, gameStatus, rules, whichPlayersTurn, gameRound, players, scores, turns, winningPlayerId } = game;
+  const theme = useTheme();
+  const styles = useStyles(theme);
+
+  if(!gameId) {
+    return null;
+  }
+
+  useEffect(() => {
+    const fetchGame = async (gameId) => {
+      try {
+        const fetchedGame = await getGame(gameId);
+        if (fetchedGame) {
+          setGame(fetchedGame);
+          updateGameStatus(fetchedGame.gameStatus);
+        }
+        console.log("FETCH THAT GAME", gameId);
+      } catch (err) {
+        console.log('error fetching game', err);
+      }
+    };
+
+    if(gameId) {
+      fetchGame(gameId);
+    }
+  }, [gameId]);
+
+  if (!game) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading Game...</Text>
+        <ActivityIndicator style={{marginTop: 10}} size={100} />
+      </View>
+    );
+  }
+
+  const { 
+    createdAt, 
+    updatedAt,
+    gameStatus, 
+    rules, 
+    whichPlayersTurn, 
+    gameRound, 
+    players, 
+    scores, 
+    turns, 
+    winningPlayerId 
+  } = game;
 
   const logScore = async (score) => {
     if (!turnPosting) {
@@ -49,17 +98,24 @@ const GameBoard = (props) => {
       const newTurns = [...turns, thisTurn];
 
       try {
-        await updateGame(game.id, {
+
+        const newGame = {
+          ...game,
+          updatedAt: new Date().toISOString(),
           whichPlayersTurn: nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
           scores: newScores,
           gameStatus: winningTurn ? 'finished' : game.gameStatus,
-          winningPlayerId: winningTurn ? whichPlayersTurn : game.winningPlayerId,
-        });
-        setTimeout(() => {
-          setTurnPosting(false);
-        }, 300);
+          winningPlayerId: winningTurn ? whichPlayersTurn : game.winningPlayerId ? game.winningPlayerId : null,
+        };
+        updateGame(game.id, newGame);
+        setGame(newGame);
+        if (winningTurn) {
+          updateGameStatus(newGame);
+        }
+        setTurnPosting(false);
+      
       } catch (err) {
         console.log('error posting Score Items', err);
         setTurnPosting(false);
@@ -88,17 +144,22 @@ const GameBoard = (props) => {
       });
 
       try {
-        await updateGame(game.id, {
+        const newGame = {
+          ...game,
+          updatedAt: new Date().toISOString(),
           whichPlayersTurn: nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
           scores: newScores,
           gameStatus: 'inProgress',
           winningPlayerId: null,
-        });
-        setTimeout(() => {
-          setTurnPosting(false);
-        }, 300);
+        }
+        setGame(newGame);
+        updateGame(game.id, newGame);
+        setTurnPosting(false);
+        if (winningPlayerId) {
+          updateGameStatus('inProgress');
+        }
       } catch (err) {
         console.log('error posting Undo Turn', err);
         setTurnPosting(false);
@@ -130,14 +191,19 @@ const GameBoard = (props) => {
       const newTurns = [...turns, thisTurn];
 
       try {
-        await updateGame(game.id, {
+        const newGame = {
+          ...game,
+          updatedAt: new Date().toISOString(),
           whichPlayersTurn: nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
-        });
-        setTimeout(() => {
-          setTurnPosting(false);
-        }, 300);
+        };
+        setGame(newGame);
+        updateGame(game.id, newGame);
+        if (winningTurn) {
+          updateGameStatus(newGame);
+        }
+        setTurnPosting(false);
       } catch (err) {
         console.log('error posting Skip Turn', err);
         setTurnPosting(false);
@@ -149,19 +215,27 @@ const GameBoard = (props) => {
     if (!turnPosting) {
       try {
         const newGameData = {
-          owner: game.owner,
+          uid: game.uid,
           players: game.players,
+          rules: game.rules,
           scores: game.players.map(player => ({
             playerId: player.id,
             score: 0,
+            timesOver: 0,
+            misses: 0,
+            isOut: false,
+            isWinner: false,
           })),
           gameStatus: 'inProgress',
-          rules: game.rules,
+          gameRound: 1,
           turns: [],
           whichPlayersTurn: game.players[0].id,
-          gameRound: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+
         };
-        await createGame(newGameData);
+        const newGameId = await createGame(newGameData);
+        onGameCreated(newGameId);
       } catch (err) {
         console.log('error starting new game', err);
       }
@@ -183,67 +257,97 @@ const GameBoard = (props) => {
 
   return (
     <View style={styles.pageWrapper}>
-      <KeyboardAwareScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
+      <ScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {playersInOrder.map((player, index) => {
           return (
-            <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} />
+            <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} updatedAt={updatedAt} />
           )
         })}
-      </KeyboardAwareScrollView>
+      </ScrollView>
       <View style={styles.buttonSectionWrapper}>
         {gameStatus === 'inProgress' ? (
           <>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(1)} text='1' />
+                <Button onPress={() => logScore(1)} >
+                  1
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(2)} text='2' />
+                <Button onPress={() => logScore(2)} >
+                  2
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(3)} text='3' />
+                <Button onPress={() => logScore(3)} >
+                  3
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(4)} text='4' />
+                <Button onPress={() => logScore(4)} >
+                  4
+                </Button>
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(5)} text='5' />
+                <Button onPress={() => logScore(5)} >
+                  5
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(6)} text='6' />
+                <Button onPress={() => logScore(6)} >
+                  6
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(7)} text='7' />
+                <Button onPress={() => logScore(7)} >
+                  7
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(8)} text='8' />
+                <Button onPress={() => logScore(8)} >
+                  8
+                </Button>
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(9)} text='9' />
+                <Button onPress={() => logScore(9)} >
+                  9
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(10)} text='10' />
+                <Button onPress={() => logScore(10)} >
+                  10
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(11)} text='11' />
+                <Button onPress={() => logScore(11)} >
+                  11
+                </Button>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(12)} text='12' />
+                <Button onPress={() => logScore(12)} >
+                  12
+                </Button>
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo' disabled={turns.length === 0} />
+                <Button onPress={() => undoTurn()} disabled={turns.length === 0} >
+                  Undo
+                </Button>
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => logScore(0)} text='0' />
+                <Button onPress={() => logScore(0)} >
+                  0
+                </Button>
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => skipTurn()} text='Skip' />
+                <Button onPress={() => skipTurn()} >
+                  Skip
+                </Button>
               </View>
             </View>
           </>
@@ -251,15 +355,19 @@ const GameBoard = (props) => {
           <>
             <View style={{ padding: 10, alignItems: 'center' }}>
               <Text bold size='XL'>
-                {players.find((p) => p.id === winningPlayerId).name} Won!
+                {players.find((p) => p.id === winningPlayerId).name} Wins!
               </Text>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => undoTurn()} text='Undo Last Turn' disabled={turns.length === 0} />
+                <Button onPress={() => undoTurn()}>
+                  Undo Last Turn
+                </Button>
               </View>
               <View style={styles.twoButtonWrapper}>
-                <Button onPress={() => playAgain()} text='Play Again' />
+                <Button onPress={() => playAgain()}>
+                  Play Again
+                </Button>
               </View>
             </View>
           </>

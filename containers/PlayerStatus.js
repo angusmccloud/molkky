@@ -1,19 +1,36 @@
+'use-client';
 import React from 'react';
-import Animated, { FadeOutDown, FadeInUp, Layout } from 'react-native-reanimated';
 import { View } from 'react-native';
+import Animated, { FadeOutDown, FadeInUp, LinearTransition } from 'react-native-reanimated';
+import { useTheme } from 'react-native-paper';
 import Text from '@/components/Text';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
-import styles from './GameBoardStyles';
-import { colors, typography } from '@/constants';
+import useStyles from './GameBoardStyles';
+import typography from '@/constants/Typography';
 
 const PlayerStatus = (props) => {
-  const { player, winningPlayerId, whichPlayersTurn, gameStatus, scores, turns } = props;
+  const { player, winningPlayerId, whichPlayersTurn, gameStatus, scores, turns, updatedAt } = props;
+  const theme = useTheme();
+  const styles = useStyles(theme);
+
+  const playerTurns = turns.filter(turn => turn.playerId === player.id);
+
+  // TO-DO: This render was a DISASTER, unclear why it didn't work once Icons came in
+  const turnsString = playerTurns.map(turn => {
+    if (turn.skipped) {
+      return 'Skipped';
+    } else {
+      return `${turn.score}${turn.wentOver ? ' (Went Over)' : ''}`;
+    }
+  }).join(', ');
+  //   <Icon name='skip' size={typography.fontSizeS} color={theme.colors.onBackground} />
+  // <Icon name='wentOver' size={typography.fontSizeS} color={theme.colors.error} />
 
   return (
     <Animated.View
       style={styles.container}
-      layout={Layout}
+      layout={LinearTransition}
       entering={FadeInUp}
       exiting={FadeOutDown}
     >
@@ -24,11 +41,11 @@ const PlayerStatus = (props) => {
           </View>
           <View style={{ flexDirection: 'column' }}>
             <View style={styles.playerHeader}>
-              {winningPlayerId === player.id && (
-                <Icon name='winner' color={colors.primaryBlue} size={typography.fontSizeXL} />
-              )}
-              {whichPlayersTurn === player.id && gameStatus === 'inProgress' && (
-                <Icon name='play' color={colors.primaryBlue} size={typography.fontSizeXL} />
+              {/* {(winningPlayerId && winningPlayerId === player.id && gameStatus !== 'inProgress') && (
+                <Icon name='winner' color={theme.colors.primary} size={typography.fontSizeXL} />
+              )} */}
+              {(whichPlayersTurn === player.id && gameStatus === 'inProgress') && (
+                <Icon name='collapsed' color={theme.colors.primary} size={typography.fontSizeXL} />
               )}
               <Text size='XL' bold>
                 {player.name}:{' '}
@@ -38,33 +55,16 @@ const PlayerStatus = (props) => {
               </Text>
             </View>
             <View style={styles.turnsWrapper}>
-              {turns.filter(turn => turn.playerId === player.id).length > 0 ? (
-                turns.filter(turn => turn.playerId === player.id).map((turn, index) => {
-                  return (
-                    <View key={index} style={{ flexDirection: 'row' }}>
-                      <Text size='S'>
-                        {index > 0 ? ', ' : ''}
-                      </Text>
-                      {turn.skipped ? (
-                        <Icon name='skip' size={typography.fontSizeS} color={colors.primaryBlue} />
-                      ) : (
-                        <>
-                          <Text size='S'>
-                            {turn.score}
-                          </Text>
-                          {turn.wentOver ? (
-                            <Icon name='wentOver' size={typography.fontSizeS} color={colors.red} />
-                          ) : null}
-                        </>
-                      )}
-                    </View>
+              <Text size='S' style={{ color: theme.colors.onBackground }}>
+                {playerTurns.length === 0 ? 
+                  (
+                    'Hasn\'t had a turn yet'
+                  ) : 
+                  (
+                    turnsString
                   )
-                })
-              ) : (
-                <Text size='S'>
-                  Hasn't had a turn yet
-                </Text>
-              )}
+                }
+              </Text>
             </View>
           </View>
         </View>

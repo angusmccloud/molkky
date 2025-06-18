@@ -100,7 +100,7 @@ export const allIcons = [
   
   { type: "EvilIcons", name: "calendar", iconName: "calendar", label: "Calendar" },
   { type: "Ionicons", name: "map", iconName: "map", label: "Map" },
-  { type: "Ionicons", name: "trophy-outline", iconName: "standings", label: "Standings" },
+  { type: "Ionicons", name: "trophy-outline", iconName: "winner", label: "Winner" },
   { type: "EvilIcons", name: "bell", iconName: "notifications", label: "Notifications" },
   { type: "FontAwesome5", name: "info-circle", iconName: "info", label: "Info" },
   { type: "Ionicons", name: "person-circle", iconName: "user", label: "User" },
@@ -139,4 +139,7 @@ export const allIcons = [
   { type: "FontAwesome", name: "check-square-o", iconName: "ratedBeer", label: "Rated This Beer" },
   { type: "FontAwesome5", name: "eye", iconName: "onWatchList", label: "Watching for this Beer" },
   { type: "Ionicons", name: "book-outline", iconName: "rules", label: "Rules" },
+  { type: "Ionicons", name: "arrow-redo-outline", iconName: "skip", label: "Skip" },
+  { type: "Ionicons", name: "arrow-undo-outline", iconName: "wentOver", label: "wentOver" },
+  { type: "Ionicons", name: "stats-chart", iconName: "stats", label: "Stats" },
 ];
