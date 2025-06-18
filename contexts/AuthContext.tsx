@@ -1,11 +1,14 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { signUpNewUser, signInUser, signOutUser } from '@/services/auth';
 import { getAuth, onAuthStateChanged, User as firebaseUser } from 'firebase/auth';
+import { findOrCreateUser } from '@/services/users';
+import { updateUserFriends } from '@/services/users';
 
 // Define a User type that extends Firebase's user by adding additional properties (name, friends)
 export interface User extends firebaseUser {
   name?: string; // Optional name property
   friends?: string[]; // Optional friends list
+  email: string; // Required email property
 }
 
 // Define the shape of the AuthContext
@@ -17,6 +20,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  addFriends: (newFriends: { id: string; name: string }[]) => Promise<void>;
 }
 
 // Create the AuthContext with a default value of null
@@ -30,16 +34,36 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null); // Add error state
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        // Get user record from Firestore using userId
+        try {
+          const userRecord = await findOrCreateUser({
+            userId: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || currentUser.email
+          });
+          
+          setUser({
+            ...currentUser,
+            name: currentUser.displayName,
+            friends: userRecord.friends || []
+          });
+        } catch (error) {
+          console.error("Error fetching user record:", error);
+          setUser(currentUser);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string): Promise<void> => {
@@ -72,8 +96,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const addFriends = async (newFriends: { id: string; name: string }[]): Promise<void> => {
+    if (!user) return;
+    
+    try {
+      const existingFriends = user.friends || [];
+      const uniqueNewFriends = newFriends.filter(
+        newFriend => !existingFriends.some(existing => existing.id === newFriend.id)
+      );
+      
+      if (uniqueNewFriends.length === 0) return;
+      
+      const updatedFriends = [...existingFriends, ...uniqueNewFriends];
+      
+      // Update in Firestore
+      await updateUserFriends(user.uid, updatedFriends);
+      
+      // Update local state
+      setUser({
+        ...user,
+        friends: updatedFriends
+      });
+    } catch (error) {
+      console.error("Error adding friends:", error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, error, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, error, signUp, signIn, signOut, addFriends }}>
       {children}
     </AuthContext.Provider>
   );

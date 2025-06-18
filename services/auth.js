@@ -1,22 +1,31 @@
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "firebase/auth";
+import { findOrCreateUser } from './users';
 
 export const signUpNewUser = (email, password, displayName) => {
   const auth = getAuth();
   return createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
+    .then(async (userCredential) => {
       // Signed up 
       console.log("User signed up successfully:", userCredential);
       const user = userCredential.user;
+      
       // Update the user's profile with the display name
-      return updateProfile(user, { displayName: displayName })
-        .then(() => {
-          console.log("User profile updated successfully");
-          return user;
-        })
-        .catch((error) => {
-          console.error("Error updating user profile:", error);
-          throw new Error(`Error updating profile: ${error.message}`);
-        });
+      await updateProfile(user, { displayName: displayName });
+      console.log("User profile updated successfully");
+      
+      // Find or create user record in Firestore using userId
+      const userRecord = await findOrCreateUser({
+        userId: user.uid,
+        email: user.email,
+        name: displayName
+      });
+      
+      // Return user with additional data
+      return {
+        ...user,
+        name: displayName,
+        friends: userRecord.friends || []
+      };
     })
     .catch((error) => {
       console.error("Error signing up user:", error);
@@ -29,11 +38,24 @@ export const signUpNewUser = (email, password, displayName) => {
 export const signInUser = (email, password) => {
   const auth = getAuth();
   return signInWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
+    .then(async (userCredential) => {
       // Signed in 
       console.log("User signed in successfully:", userCredential);
       const user = userCredential.user;
-      return user;
+      
+      // Find or create user record in Firestore using userId
+      const userRecord = await findOrCreateUser({
+        userId: user.uid,
+        email: user.email,
+        name: user.displayName || user.email
+      });
+      
+      // Return user with additional data
+      return {
+        ...user,
+        name: user.displayName,
+        friends: userRecord.friends || []
+      };
     })
     .catch((error) => {
       console.error("Error signing in user:", error);

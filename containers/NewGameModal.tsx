@@ -21,14 +21,6 @@ import IconButton from "@/components/IconButton";
 // --- Types for state ---
 type Player = { id: string; name: string };
 
-const mockFriends: Player[] = [
-  { id: 'abd312', name: 'Alice Smith' },
-  { id: 'klvsan', name: 'Bob Johnson' },
-  { id: 'ngafds14', name: 'Charlie Brown' },
-  { id: '49bncas', name: 'David Wilson' },
-  { id: 'bavdf89h', name: 'Eva Green' },
-];
-
 const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGameCreated: (gameId: string) => void; }) => {
   const { showModal, closeModal, onGameCreated } = props;
   const [winningScore, setWinningScore] = useState('50');
@@ -46,8 +38,11 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   if (!authContext) {
     throw new Error('AuthContext must be used within an AuthProvider');
   }
-  const { user } = authContext;
-  // if (!user) throw new Error('User must be logged in');
+  const { user, addFriends } = authContext;
+  
+  // Get friends from user context
+  const friends = user?.friends || [];
+
   const theme = useTheme();
   const styles = useStyles(theme);
 
@@ -66,14 +61,14 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   };
 
   // Derive selectedFriendIds from players
-  const selectedFriendIds = players.filter(p => mockFriends.some(f => f.id === p.id)).map(p => p.id);
+  const selectedFriendIds = players.filter(p => friends.some(f => f.id === p.id)).map(p => p.id);
 
   // When MultiSelectInput changes, update players array to include selected friends (preserving custom players and order)
   const handleSetFriendIds = (newIds: string[]) => {
     const customPlayers = players.filter(
-      p => !mockFriends.some(f => f.id === p.id)
+      p => !friends.some(f => f.id === p.id)
     );
-    const selectedFriends = mockFriends.filter(f => newIds.includes(f.id));
+    const selectedFriends = friends.filter(f => newIds.includes(f.id));
     setPlayers([...selectedFriends, ...customPlayers]);
   };
 
@@ -93,7 +88,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   // Remove player (friend or custom)
   const removePlayer = (id: string) => {
     // If it's a friend, remove from players
-    if (mockFriends.some(f => f.id === id)) {
+    if (friends.some(f => f.id === id)) {
       setPlayers(players.filter(p => p.id !== id));
     } else {
       // Remove custom player directly
@@ -105,6 +100,17 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
     setCreatingGame(true);
     setError(null);
     try {
+      // Identify new players who aren't already friends
+      const existingFriendIds = friends.map(f => f.id);
+      const newFriends = players.filter(
+        player => !existingFriendIds.includes(player.id) && friends.every(f => f.id !== player.id)
+      );
+      
+      // Add new players as friends if any (async, no await)
+      if (newFriends.length > 0) {
+        addFriends(newFriends);
+      }
+
       const gameData = {
         uid: user.uid,
         players: players.map(player => ({
@@ -143,6 +149,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
       }
     } catch (err) {
       setError('Failed to create game. Please try again.');
+      console.log('-- Error creating game --', err);
     } finally {
       setCreatingGame(false);
     }
@@ -226,14 +233,16 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                       </View>
                     )}
                     search={true}
-                    data={mockFriends.map(f => ({
-                      label: f.name,
-                      value: f.id,
-                      // Disable if a custom player with the same name exists (case-insensitive)
-                      disabled: players.some(
-                        p => p.name.toLowerCase() === f.name.toLowerCase() && !mockFriends.some(mf => mf.id === p.id)
-                      )
-                    }))}
+                    data={friends
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(f => ({
+                        label: f.name,
+                        value: f.id,
+                        // Disable if a custom player with the same name exists (case-insensitive)
+                        disabled: players.some(
+                          p => p.name.toLowerCase() === f.name.toLowerCase() && !friends.some(mf => mf.id === p.id)
+                        )
+                      }))}
                     values={selectedFriendIds}
                     setValues={handleSetFriendIds as (values: string[]) => void}
                     valueField="value"
