@@ -31,9 +31,9 @@ export default function HomeScreen() {
 
   return (
     <PageWrapper>
-        <Text>
+        {/* <Text>
           {loading ? 'Loading user...' : user ? `Welcome, ${user.displayName}` : 'Login to Backup Data in the Cloud'}
-        </Text>
+        </Text> */}
         <Button onPress={() => setShowNewGameModal(true)}>
           Show New Game Modal
         </Button>
@@ -42,9 +42,9 @@ export default function HomeScreen() {
           closeModal={() => setShowNewGameModal(false)}
           onGameCreated={handleGameCreated}
         />
-        <Text>
+        {/* <Text>
           {currentGameId ? `Current Game ID: ${currentGameId}` : 'No game created yet'}
-        </Text>
+        </Text> */}
         {currentGameId && (
           <GameBoard gameId={currentGameId} setCurrentGameStatus ={setCurrentGameStatus} onGameCreated={handleGameCreated} />
         )}

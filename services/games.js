@@ -1,5 +1,5 @@
 import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/app/_layout';
+import { db } from '@/lib/firebase';
 
 
 // Create a new game

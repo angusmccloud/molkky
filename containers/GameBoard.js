@@ -29,16 +29,16 @@ const GameBoard = (props) => {
           setGame(fetchedGame);
           updateGameStatus(fetchedGame.gameStatus);
         }
-        console.log("FETCH THAT GAME", gameId);
+        // console.log("FETCH THAT GAME", gameId);
       } catch (err) {
-        console.log('error fetching game', err);
+        console.log('error fetching game (Board)', err);
       }
     };
 
-    if(gameId) {
+    if(gameId && updateGameStatus) {
       fetchGame(gameId);
     }
-  }, [gameId]);
+  }, [gameId, updateGameStatus]);
 
   if (!game) {
     return (
