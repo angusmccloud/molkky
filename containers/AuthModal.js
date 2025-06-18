@@ -70,20 +70,23 @@ const AuthModal = () => {
       setAuthStatus(signedInUser);
       console.log('-- Sign in Successful --', signedInUser);
       closeModal();
-    } catch ({ code }) {
+    } catch (err) {
       setAuthInProgress(false);
-      console.log(" -- Didn't Work --", code); // Uncommented for debugging
-      // TODO: Find Firebase Codes
-      if (code === "UserNotConfirmedException") {
-        setFormError("Account not verified yet");
-      } else if (code === "PasswordResetRequiredException") {
-        setFormError("Existing user found. Please reset your password");
-      } else if (code === "NotAuthorizedException") {
-        setFormError("Forgot Password?");
-      } else if (code === "UserNotFoundException") {
+      const code = err?.code;
+      console.log(" -- Didn't Work --", code);
+      // Firebase error codes: https://firebase.google.com/docs/reference/js/auth.md#autherrorcodes
+      if (code === "auth/user-not-found") {
         setFormError("User does not exist");
+      } else if (code === "auth/wrong-password") {
+        setFormError("Incorrect password");
+      } else if (code === "auth/invalid-email") {
+        setFormError("The email address is invalid");
+      } else if (code === "auth/too-many-requests") {
+        setFormError("Too many failed attempts. Please try again later.");
+      } else if (code === "auth/invalid-credential") {
+        setFormError("Invalid credentials provided, check your email and password and try again");
       } else {
-        setFormError(code);
+        setFormError(err?.message || "There was an error signing in, please check your credentials and try again");
       }
     }
   };
@@ -107,9 +110,20 @@ const AuthModal = () => {
         console.log('User created successfully:', newUser);
         closeModal();
       } catch (err) {
-        console.log("error signing up...", err);
-        setFormError("There was an error creating your account");
-        // TODO: Add Codes if we can
+        const code = err?.code || "";
+        let message = "There was an error creating your account";
+        if (code === "auth/email-already-in-use") {
+          message = "An account with this email already exists";
+        } else if (code === "auth/invalid-email") {
+          message = "The email address is invalid";
+        } else if (code === "auth/weak-password") {
+          message = "Password is too weak (minimum 6 characters)";
+        } else if (code === "auth/operation-not-allowed") {
+          message = "Account creation is currently disabled";
+        } else if (err?.message) {
+          message = err.message;
+        }
+        setFormError(message);
         setAuthInProgress(false);
       }
     }
@@ -271,7 +285,7 @@ const AuthModal = () => {
                   />
                   {formError !== "" && (
                     <Text
-                      color="red"
+                      color={theme.colors.error}
                       style={{ marginTop: 10, marginBottom: 10 }}
                     >
                       {formError}
@@ -385,7 +399,7 @@ const AuthModal = () => {
                     ref={ref_createPasswordConfirm}
                   />
                   {formError !== "" && (
-                    <Text style={{ marginTop: 10, marginBottom: 10 }}>
+                    <Text style={{ marginTop: 10, marginBottom: 10 }} color={theme.colors.error}>
                       {formError}
                     </Text>
                   )}

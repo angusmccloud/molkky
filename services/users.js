@@ -33,7 +33,7 @@ export const findOrCreateUser = async (userInfo) => {
       ...newUser
     };
   } catch (error) {
-    console.error("Error finding or creating user: ", error);
+    console.log("Error finding or creating user: ", error);
     throw error;
   }
 };
@@ -46,7 +46,7 @@ export const updateUserFriends = async (userId, friends) => {
     console.log("User friends updated successfully");
     return true;
   } catch (e) {
-    console.error("Error updating user friends: ", e);
+    console.log("Error updating user friends: ", e);
     return false;
   }
 };
@@ -79,7 +79,7 @@ export const deleteUser = async (userId) => {
     console.log("User deleted successfully");
     return true;
   } catch (e) {
-    console.error("Error deleting user: ", e);
+    console.log("Error deleting user: ", e);
     return false;
   }
 };

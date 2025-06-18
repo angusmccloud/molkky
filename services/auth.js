@@ -28,10 +28,9 @@ export const signUpNewUser = (email, password, displayName) => {
       };
     })
     .catch((error) => {
-      console.error("Error signing up user:", error);
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      throw new Error(`Error ${errorCode}: ${errorMessage}`);
+      console.log("Error signing up user:", error);
+      // Propagate the error
+      throw error;
     });
 };
 
@@ -58,10 +57,9 @@ export const signInUser = (email, password) => {
       };
     })
     .catch((error) => {
-      console.error("Error signing in user:", error);
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      throw new Error(`Error ${errorCode}: ${errorMessage}`);
+      console.log("Error signing in user:", error);
+      // Propagate the error
+      throw error;
     });
 }
 
@@ -73,10 +71,9 @@ export const signOutUser = () => {
       console.log("User signed out successfully");
     })
     .catch((error) => {
-      console.error("Error signing out user:", error);
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      throw new Error(`Error ${errorCode}: ${errorMessage}`);
+      console.log("Error signing out user:", error);
+      // Propagate the error
+      throw error;
     });
 }
 

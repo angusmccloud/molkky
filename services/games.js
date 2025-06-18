@@ -9,7 +9,7 @@ export const createGame = async (game) => {
     console.log("Game created with ID: ", docRef.id);
     return docRef.id; // Return the ID of the newly created game
   } catch (e) {
-    console.error("Error creating game: ", e);
+    console.log("Error creating game: ", e);
     return null;
   }
 };
@@ -32,7 +32,7 @@ export const updateGame = async (gameId, gameData) => {
     console.log("Game updated successfully");
     return true;
   } catch (e) {
-    console.error("Error updating game: ", e);
+    console.log("Error updating game: ", e);
     return false;
   }
 }

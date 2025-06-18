@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             friends: userRecord.friends || []
           });
         } catch (error) {
-          console.error("Error fetching user record:", error);
+          console.log("Error fetching user record:", error);
           setUser(currentUser);
         }
       } else {
@@ -73,6 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(newUser);
     } catch (error: any) {
       setError(error.message); // Set error message
+      throw error; // Propagate error to caller
     }
   };
 
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(signedInUser);
     } catch (error: any) {
       setError(error.message); // Set error message
+      throw error; // Propagate error to caller
     }
   };
 
@@ -93,6 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
     } catch (error: any) {
       setError(error.message); // Set error message
+      throw error; // Propagate error to caller
     }
   };
 
@@ -118,8 +121,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         friends: updatedFriends
       });
     } catch (error) {
-      console.error("Error adding friends:", error);
-      throw error;
+      console.log("Error adding friends:", error);
+      // throw error;
     }
   };
 
