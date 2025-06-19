@@ -44,6 +44,7 @@ const AuthModal = () => {
   };
 
   const closeModal = () => {
+    console.log('-- closeModal --');
     setShowModal(false);
     setAuthInProgress(false);
     setCurrentView("create");
@@ -52,10 +53,6 @@ const AuthModal = () => {
     setName("");
     setPassword("");
     setConfirmPassword("");
-    // setForgetPWCode("");
-    // setNewPassword("");
-    // setForgetPWCode("");
-    // setConfirmNewPassword("");
   };
 
   const processSignIn = async (pwd) => {
@@ -66,10 +63,13 @@ const AuthModal = () => {
       return;
     }
     try {
-      const signedInUser = await signIn(email, pwd);
-      setAuthStatus(signedInUser);
-      console.log('-- Sign in Successful --', signedInUser);
-      closeModal();
+      const signInSuccessful = await signIn(email, pwd);
+      console.log('-- signInSuccessful --', signInSuccessful)
+      if (signInSuccessful) {
+        // setAuthStatus(signedInUser);
+        console.log('-- Sign in Successful --', signedInUser);
+        closeModal();
+      }
     } catch (err) {
       setAuthInProgress(false);
       const code = err?.code;

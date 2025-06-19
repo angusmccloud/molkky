@@ -24,6 +24,7 @@ export default function HomeScreen() {
 
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
   const { user, loading } = authContext;
+  console.log('-- user --', user);
 
   // Move fetchLatestGame to top-level so hooks are not called conditionally
   const fetchLatestGame = useCallback(async () => {
@@ -64,8 +65,10 @@ export default function HomeScreen() {
 
   // HeaderLeft button logic
   useEffect(() => {
-    if (!navigation || !user) return;
-    if (!currentGame || currentGame.gameStatus === 'finished') {
+    if (!navigation || !user) {
+      navigation.setOptions?.({ headerLeft: () => null });
+      return;
+    } else if (!currentGame || currentGame.gameStatus === 'finished') {
       navigation.setOptions?.({
         headerLeft: () => (
           <IconButton

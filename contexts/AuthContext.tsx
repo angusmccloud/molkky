@@ -18,7 +18,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null; 
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   addFriends: (newFriends: { id: string; name: string }[]) => Promise<void>;
 }
@@ -77,14 +77,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const signIn = async (email: string, password: string): Promise<boolean> => {
     setError(null); // Reset error state
     try {
       const signedInUser = await signInUser(email, password);
       setUser(signedInUser);
+      return true;
     } catch (error: any) {
       setError(error.message); // Set error message
-      throw error; // Propagate error to caller
+      return false;
     }
   };
 
