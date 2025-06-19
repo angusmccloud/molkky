@@ -24,11 +24,12 @@ const StatsScreen: React.FC = () => {
   const [scoresHistory, setScoresHistory] = useState<ScoreHistory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
   const { user } = authContext;
 
   useEffect(() => {
     const loadStats = async () => {
-      console.log('-- Loading stats for user --', user?.uid);
+      // console.log('-- Loading stats for user --', user?.uid);
       setLoading(true);
       try {
         if (!user) return;

@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connortyrrell.molkky",
-      "buildNumber": "2.0.0"
+      "buildNumber": "2.0.0",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -37,10 +40,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#0c62fb"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "65a51664-6fc5-4a8f-b49b-2d5b7ef9cac7"
+      }
     }
   }
 }
