@@ -24,7 +24,6 @@ export default function HomeScreen() {
 
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
   const { user, loading } = authContext;
-  console.log('-- user --', user);
 
   // Move fetchLatestGame to top-level so hooks are not called conditionally
   const fetchLatestGame = useCallback(async () => {
