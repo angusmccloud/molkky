@@ -14,7 +14,8 @@
       "buildNumber": "2.0.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "requireFullScreen": true
     },
     "android": {
       "adaptiveIcon": {
@@ -41,7 +42,13 @@
           "backgroundColor": "#0c62fb"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-screen-orientation",
+          {
+            "initialOrientation": "PORTRAIT_UP"
+          }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
