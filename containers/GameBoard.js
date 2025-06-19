@@ -27,7 +27,6 @@ const GameBoard = (props) => {
         const fetchedGame = await getGame(gameId);
         if (fetchedGame) {
           setGame(fetchedGame);
-          updateGameStatus(fetchedGame.gameStatus);
         }
         // console.log("FETCH THAT GAME", gameId);
       } catch (err) {

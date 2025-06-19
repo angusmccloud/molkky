@@ -276,7 +276,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 </View>
               </View>
               {/* Chips for all players */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginVertical: 10 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
                 {players.map(player => (
                   <Chip
                     key={player.id}
