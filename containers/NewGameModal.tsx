@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
+import Animated, { FadeOutDown, FadeInUp, LinearTransition } from 'react-native-reanimated';
 import { useTheme } from "react-native-paper";
 import uuid from 'react-native-uuid'; 
 import { createGame } from '@/services/games';
@@ -274,27 +275,34 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               </View>
             </View>
             {/* Chips for all players */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 3 }}>
               {players.map(player => (
-                <Chip
+                <Animated.View
                   key={player.id}
-                  icon={() => (
-                    <Avatar 
-                      name={player.name}
-                      size={typography.fontSizeS * 2}
-                      textSize={TextSizes.S}
-                      variant="circle"
-                      absolute={false}
-                    />
-                  )}
-                  closeIcon={() => (
-                    <Icon size={typography.fontSizeS * 2} name="close" />
-                  )}
-                  onClose={() => removePlayer(player.id)}
-                  style={{ marginRight: 6, marginBottom: 6 }}
+                  entering={FadeInUp.duration(200).delay(100)}
+                  exiting={FadeOutDown.duration(200)}
+                  layout={LinearTransition}
                 >
-                  {player.name}
-                </Chip>
+                  <Chip
+                    key={player.id}
+                    icon={() => (
+                      <Avatar 
+                        name={player.name}
+                        size={typography.fontSizeS * 2}
+                        textSize={TextSizes.S}
+                        variant="circle"
+                        absolute={false}
+                      />
+                    )}
+                    closeIcon={() => (
+                      <Icon size={typography.fontSizeS * 2} name="close" />
+                    )}
+                    onClose={() => removePlayer(player.id)}
+                    style={{ marginRight: 6, marginBottom: 6 }}
+                  >
+                    {player.name}
+                  </Chip>
+                </Animated.View>
               ))}
             </View>
             {/* Add New Player button */}
