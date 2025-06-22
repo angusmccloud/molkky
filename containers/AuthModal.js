@@ -44,7 +44,7 @@ const AuthModal = () => {
   };
 
   const closeModal = () => {
-    console.log('-- closeModal --');
+    // console.log('-- closeModal --');
     setShowModal(false);
     setAuthInProgress(false);
     setCurrentView("create");
@@ -186,14 +186,12 @@ const AuthModal = () => {
         </View>
       </Pressable>
       <Modal
-        visible={showModal}
-        onRequestClose={closeModal}
+        isVisible={showModal}
         onBackButtonPress={closeModal}
-        onBackdropPress={closeModal}
         avoidKeyboard={true}
         style={{ padding: 0, margin: 0 }}
       >
-        <View style={styles.modalBackground}>
+        <Pressable style={styles.modalBackground} onPress={closeModal}>
           <View style={styles.modalBody}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, alignItems: "flex-start" }}>
@@ -422,7 +420,7 @@ const AuthModal = () => {
               )}
             </ScrollView>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </>
   );

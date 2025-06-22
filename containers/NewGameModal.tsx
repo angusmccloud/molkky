@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useTheme } from "react-native-paper";
 import uuid from 'react-native-uuid'; 
 import { createGame } from '@/services/games';
@@ -177,14 +177,12 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   return (
     <>
       <Modal
-        visible={showModal}
-        onRequestClose={resetModal}
+        isVisible={showModal}
         onBackButtonPress={resetModal}
-        onBackdropPress={resetModal}
         avoidKeyboard={true}
         style={{ padding: 0, margin: 0 }}
       >
-        <View style={styles.modalBackground}>
+        <Pressable style={styles.modalBackground} onPress={resetModal}>
           <View style={styles.modalBody}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, alignItems: "flex-start" }}>
@@ -388,7 +386,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               {error && <Text color={theme.colors.error}>{error}</Text>}
             </ScrollView>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </>
   );
