@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import Button from '@/components/Button';
 import Text from '@/components/Text';
@@ -268,68 +268,68 @@ const GameBoard = (props) => {
           <>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(1)} >
-                  1
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(1)} >
+                  <Text size='XL' color='white'>1</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(2)} >
-                  2
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(2)} >
+                  <Text size='XL' color='white'>2</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(3)} >
-                  3
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(3)} >
+                  <Text size='XL' color='white'>3</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(4)} >
-                  4
-                </Button>
-              </View>
-            </View>
-            <View style={styles.buttonsWrapper}>
-              <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(5)} >
-                  5
-                </Button>
-              </View>
-              <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(6)} >
-                  6
-                </Button>
-              </View>
-              <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(7)} >
-                  7
-                </Button>
-              </View>
-              <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(8)} >
-                  8
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(4)} >
+                  <Text size='XL' color='white'>4</Text>
+                </Pressable>
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(9)} >
-                  9
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(5)} >
+                  <Text size='XL' color='white'>5</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(10)} >
-                  10
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(6)} >
+                  <Text size='XL' color='white'>6</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(11)} >
-                  11
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(7)} >
+                  <Text size='XL' color='white'>7</Text>
+                </Pressable>
               </View>
               <View style={styles.fourButtonWrapper}>
-                <Button onPress={() => logScore(12)} >
-                  12
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(8)} >
+                  <Text size='XL' color='white'>8</Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.buttonsWrapper}>
+              <View style={styles.fourButtonWrapper}>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(9)} >
+                  <Text size='XL' color='white'>9</Text>
+                </Pressable>
+              </View>
+              <View style={styles.fourButtonWrapper}>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(10)} >
+                  <Text size='XL' color='white'>10</Text>
+                </Pressable>
+              </View>
+              <View style={styles.fourButtonWrapper}>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(11)} >
+                  <Text size='XL' color='white'>11</Text>
+                </Pressable>
+              </View>
+              <View style={styles.fourButtonWrapper}>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(12)} >
+                  <Text size='XL' color='white'>12</Text>
+                </Pressable>
               </View>
             </View>
             <View style={styles.buttonsWrapper}>
@@ -339,9 +339,9 @@ const GameBoard = (props) => {
                 </Button>
               </View>
               <View style={styles.threeButtonWrapper}>
-                <Button onPress={() => logScore(0)} >
-                  0
-                </Button>
+                <Pressable style={styles.fourWideButton} onPress={() => logScore(0)} >
+                  <Text size='XL' color='white'>0</Text>
+                </Pressable>
               </View>
               <View style={styles.threeButtonWrapper}>
                 <Button onPress={() => skipTurn()} >

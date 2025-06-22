@@ -49,6 +49,14 @@ const useStyles = (theme) => {
       paddingTop: 5,
       paddingBottom: 5,
     },
+    fourWideButton: {
+      width: width * .16,
+      height: width * .16,
+      borderRadius: width * .08,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     fourButtonWrapper: {
       width: '25%',
       alignItems: 'center',
