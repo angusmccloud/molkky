@@ -49,7 +49,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (user) {
-      console.log('Fetching latest game for user:', user.uid);
+      // console.log('Fetching latest game for user:', user.uid);
       fetchLatestGame();
     }
   }, [user, showNewGameModal, fetchLatestGame]);
@@ -57,7 +57,7 @@ export default function HomeScreen() {
   // Refetch on focus (if returning from another tab)
   useFocusEffect(
     useCallback(() => {
-      console.log('HomeScreen focused, fetching latest game');
+      // console.log('HomeScreen focused, fetching latest game');
       fetchLatestGame();
     }, [fetchLatestGame])
   );
