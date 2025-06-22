@@ -20,9 +20,6 @@ const AuthModal = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authInProgress, setAuthInProgress] = useState(false);
   const [formError, setFormError] = useState("");
-  // const [forgetPWCode, setForgetPWCode] = useState("");
-  // const [newPassword, setNewPassword] = useState("");
-  // const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   const authContext = useContext(AuthContext);
   if (!authContext) {
@@ -55,15 +52,15 @@ const AuthModal = () => {
     setConfirmPassword("");
   };
 
-  const processSignIn = async (pwd) => {
+  const processSignIn = async () => {
     setAuthInProgress(true);
-    if (email.length === 0 || pwd.length === 0) {
+    if (email.length === 0 || password.length === 0) {
       setFormError("Email and Password are required");
       setAuthInProgress(false);
       return;
     }
     try {
-      const signInSuccessful = await signIn(email, pwd);
+      const signInSuccessful = await signIn(email, password);
       // console.log('-- signInSuccessful --', signInSuccessful)
       if (signInSuccessful) {
         // setAuthStatus(signedInUser);
@@ -71,6 +68,7 @@ const AuthModal = () => {
         closeModal();
       } else {
         setFormError("There was an error signing in, please check your credentials and try again");
+        setAuthInProgress(false);
       }
     } catch (err) {
       setAuthInProgress(false);
@@ -261,12 +259,18 @@ const AuthModal = () => {
                       styles.modalTextInput,
                       styles.textInputWrapper,
                     ]}
-                    onChangeText={(text) => setEmail(text)}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setFormError("");
+                    }}
                     onSubmitEditing={() => ref_loginPassword.current.focus()}
                   />
                   <TextInput
-                    onChangeText={(text) => setPassword(text)}
-                    onSubmitEditing={() => processSignIn(password)}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setFormError("");
+                    }}
+                    onSubmitEditing={processSignIn}
                     label="Password"
                     autoCompleteType="password"
                     clearButtonMode="while-editing"
@@ -293,7 +297,7 @@ const AuthModal = () => {
                   )}
                   <Button
                     variant="primary"
-                    onPress={() => processSignIn(password)}
+                    onPress={processSignIn}
                     disabled={authInProgress}
                   >
                     Login
@@ -336,7 +340,10 @@ const AuthModal = () => {
                       styles.modalTextInput,
                       styles.textInputWrapper,
                     ]}
-                    onChangeText={(text) => setEmail(text)}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setFormError("");
+                    }}
                     onSubmitEditing={() => ref_createName.current.focus()}
                   />
                   <TextInput
@@ -358,7 +365,10 @@ const AuthModal = () => {
                     ref={ref_createName}
                   />
                   <TextInput
-                    onChangeText={(text) => setPassword(text)}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setFormError("");
+                    }}
                     label="Password"
                     autoCompleteType="password"
                     clearButtonMode="while-editing"
