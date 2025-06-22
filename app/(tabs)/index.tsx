@@ -27,7 +27,7 @@ export default function HomeScreen() {
 
   // Move fetchLatestGame to top-level so hooks are not called conditionally
   const fetchLatestGame = useCallback(async () => {
-    console.log('--fetchLatestGame --');
+    // console.log('--fetchLatestGame --');
     if (!user) {
       setCurrentGame(null);
       return;
@@ -74,7 +74,7 @@ export default function HomeScreen() {
             icon="plus"
             mode={'outlined'}
             iconColor={theme.colors.onPrimary}
-            size={typography.fontSizeXL}
+            size={typography.fontSizeXXL / 2}
             onPress={() => setShowNewGameModal(true)}
             style={{marginLeft: 10}}
           />
