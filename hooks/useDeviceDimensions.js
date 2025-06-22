@@ -10,6 +10,7 @@ const useDeviceDimensions = () => {
     width,
     height,
     orientation,
+    isTablet: width >= 768,
     // visibileHeight,
   };
 };

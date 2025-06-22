@@ -348,6 +348,20 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 </View>
               </View>
             </Modal>
+            <View style={styles.inputWrapper}>
+              <Text>3-Misses and You're Out:</Text>
+              <Switch
+                value={outAfterThreeMisses}
+                onValueChange={setOutAfterThreeMisses}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text>3-Overs and You're Out:</Text>
+              <Switch
+                value={outAfterThreeTimesOver}
+                onValueChange={setOutAfterThreeTimesOver}
+              />
+            </View>
             <View style={styles.textInputWrapper}>
               <TextInput 
                 value={winningScore} 
@@ -368,20 +382,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 placeholder="Go-Over Points"
                 clearButtonMode="while-editing"
                 maxLength={3}
-              />
-            </View>
-            <View style={styles.inputWrapper}>
-              <Text>3-Misses and You're Out:</Text>
-              <Switch
-                value={outAfterThreeMisses}
-                onValueChange={setOutAfterThreeMisses}
-              />
-            </View>
-            <View style={styles.inputWrapper}>
-              <Text>3-Overs and You're Out:</Text>
-              <Switch
-                value={outAfterThreeTimesOver}
-                onValueChange={setOutAfterThreeTimesOver}
               />
             </View>
             {creatingGame && (

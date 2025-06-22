@@ -3,7 +3,7 @@ import typography from '@/constants/Typography';
 import useDeviceDimensions from '@/hooks/useDeviceDimensions';
 
 const useReusableStyles = theme => {
-  const { width, height } = useDeviceDimensions();
+  const { width, height, isTablet } = useDeviceDimensions();
   return StyleSheet.create({
     pageWrapper: {
       flex: 1,
@@ -25,7 +25,7 @@ const useReusableStyles = theme => {
       justifyContent: 'flex-start',
       alignSelf: 'center',
       overflow: 'hidden',
-      width: width * .8,
+      width: isTablet ? width * .8 : width * .9,
       maxHeight: height * .8,
     },
     modalHeader: {
