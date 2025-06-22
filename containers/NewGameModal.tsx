@@ -205,7 +205,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 </Button>
               </View>
             </View>
-            <ScrollView style={{padding: 5}}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{padding: 5}}>
               <View style={{flexDirection: 'row', alignItems: 'center', padding: 0}}>
                 <IconButton
                   icon="shuffle"

@@ -218,7 +218,7 @@ const AuthModal = () => {
               </View>
               <View style={{ flex: 1 }}></View>
             </View>
-            <ScrollView>
+            <ScrollView keyboardShouldPersistTaps="handled">
               {authStatus.isAuthed && (
                 <View style={styles.logoutWrapper}>
                   <Text style={{ marginBottom: 10 }}>
