@@ -39,7 +39,7 @@ export const signInUser = (email, password) => {
   return signInWithEmailAndPassword(auth, email, password)
     .then(async (userCredential) => {
       // Signed in 
-      console.log("User signed in successfully:", userCredential);
+      // console.log("User signed in successfully:", userCredential);
       const user = userCredential.user;
       
       // Find or create user record in Firestore using userId

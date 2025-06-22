@@ -64,11 +64,13 @@ const AuthModal = () => {
     }
     try {
       const signInSuccessful = await signIn(email, pwd);
-      console.log('-- signInSuccessful --', signInSuccessful)
+      // console.log('-- signInSuccessful --', signInSuccessful)
       if (signInSuccessful) {
         // setAuthStatus(signedInUser);
-        console.log('-- Sign in Successful --', signedInUser);
+        // console.log('-- Sign in Successful --', signedInUser);
         closeModal();
+      } else {
+        setFormError("There was an error signing in, please check your credentials and try again");
       }
     } catch (err) {
       setAuthInProgress(false);
