@@ -75,7 +75,7 @@ export default function HomeScreen() {
               onPress={() => setShowNewGameModal(true)}
               short
             >
-              New Game 
+              New Game
             </Button>
           </View>
           // <IconButton
@@ -91,14 +91,23 @@ export default function HomeScreen() {
     } else if (currentGame && currentGame.gameStatus === 'inProgress') {
       navigation.setOptions?.({
         headerLeft: () => (
-          <IconButton
-            icon="delete-outline"
-            mode={'outlined'}
-            iconColor={theme.colors.onPrimary}
-            size={typography.fontSizeXL}
-            onPress={() => setDeleteDialogVisible(true)}
-            style={{marginLeft: 10}}
-          />
+          <View style={{marginLeft: 10}}>
+            <Button
+              variant='secondary'
+              onPress={() => setDeleteDialogVisible(true)}
+              short
+            >
+              End Game
+            </Button>
+          </View>
+          // <IconButton
+          //   icon="delete-outline"
+          //   mode={'outlined'}
+          //   iconColor={theme.colors.onPrimary}
+          //   size={typography.fontSizeXL}
+          //   onPress={() => setDeleteDialogVisible(true)}
+          //   style={{marginLeft: 10}}
+          // />
         ),
       });
     } else {
