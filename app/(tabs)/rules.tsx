@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, ScrollView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, Image, Pressable } from 'react-native';
 import Text, { TextSizes } from '@/components/Text';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
 import useDeviceDimensions from '@/hooks/useDeviceDimensions';
+import Modal from '@/components/Modal';
 const formation = require('@/assets/images/formation.png');
 
 // Hardcoded for Formation file dimensions
@@ -15,6 +16,7 @@ const imageDimensions = {
 export default function RulesScreen() {
   const dimensions = useDeviceDimensions();
   const { width, height } = dimensions;
+  const [modalVisible, setModalVisible] = useState(false);
 
   return (
     <PageWrapper>
@@ -32,7 +34,15 @@ export default function RulesScreen() {
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Image source={formation} style={{ width: width * 0.3, height: (imageDimensions.height / imageDimensions.width) * (width * 0.3) }} />
+            <Pressable onPress={() => setModalVisible(true)}>
+              <Image
+                source={formation}
+                style={{
+                  width: width * 0.3,
+                  height: (imageDimensions.height / imageDimensions.width) * (width * 0.3)
+                }}
+              />
+            </Pressable>
           </View>
         </View>
         <View style={{ paddingTop: 5, paddingBottom: 5, width: '100%' }}>
@@ -76,6 +86,21 @@ export default function RulesScreen() {
           </Text>
         </View>
       </ScrollView>
+      <Modal
+        isVisible={modalVisible}
+        onBackdropPress={() => setModalVisible(false)}
+        style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}
+      >
+        <Image
+          source={formation}
+          style={{
+            width: width * 0.9,
+            height: (imageDimensions.height / imageDimensions.width) * (width * 0.9),
+            borderRadius: 10,
+          }}
+          resizeMode="contain"
+        />
+      </Modal>
     </PageWrapper>
   );
 }
