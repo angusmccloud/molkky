@@ -7,7 +7,6 @@ import IconButton from '@/components/IconButton';
 import PageWrapper from '@/components/PageWrapper';
 import Button from '@/components/Button';
 import { AuthContext } from '@/contexts/AuthContext';
-import Icon from '@/components/Icon';
 import GameBoard from '@/containers/GameBoard';
 import NewGameModal from '@/containers/NewGameModal';
 import { getAllUsergames, updateGame } from '@/services/games';
@@ -70,14 +69,23 @@ export default function HomeScreen() {
     } else if (!currentGame || currentGame.gameStatus === 'finished') {
       navigation.setOptions?.({
         headerLeft: () => (
-          <IconButton
-            icon="plus"
-            mode={'outlined'}
-            iconColor={theme.colors.onPrimary}
-            size={typography.fontSizeXXL / 2}
-            onPress={() => setShowNewGameModal(true)}
-            style={{marginLeft: 10}}
-          />
+          <View style={{marginLeft: 10}}>
+            <Button
+              variant='secondary'
+              onPress={() => setShowNewGameModal(true)}
+              short
+            >
+              New Game 
+            </Button>
+          </View>
+          // <IconButton
+          //   icon="plus"
+          //   mode={'outlined'}
+          //   iconColor={theme.colors.onPrimary}
+          //   size={typography.fontSizeXXL / 2}
+          //   onPress={() => setShowNewGameModal(true)}
+          //   style={{marginLeft: 10}}
+          // />
         ),
       });
     } else if (currentGame && currentGame.gameStatus === 'inProgress') {
