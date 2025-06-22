@@ -23,6 +23,7 @@ const useReusableStyles = theme => {
       backgroundColor: theme.colors.background,
       borderRadius: 10,
       justifyContent: 'flex-start',
+      alignSelf: 'center',
       overflow: 'hidden',
       width: width * .8,
       maxHeight: height * .8,

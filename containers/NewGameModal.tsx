@@ -179,214 +179,217 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
       <Modal
         isVisible={showModal}
         onBackButtonPress={resetModal}
+        onBackdropPress={resetModal}
         avoidKeyboard={true}
         style={{ padding: 0, margin: 0 }}
       >
-        <Pressable style={styles.modalBackground} onPress={resetModal}>
-          <View style={styles.modalBody}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1, alignItems: "flex-start" }}>
-                <Button
-                  variant="onModalHeader"
-                  onPress={resetModal}
-                  size="small"
-                >
-                  Cancel
-                </Button>
-              </View>
-              <View style={{ flex: 1, alignItems: "center" }}>
-                <Text color={theme.colors.onBackground} bold size={TextSizes.M}>
-                  New Game
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button onPress={startGame} disabled={!readyToStart || creatingGame} variant="onModalHeader">
-                  Start
-                </Button>
+        <View style={styles.modalBody}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1, alignItems: "flex-start" }}>
+              <Button
+                variant="onModalHeader"
+                onPress={resetModal}
+                size="small"
+              >
+                Cancel
+              </Button>
+            </View>
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text color={theme.colors.onBackground} bold size={TextSizes.M}>
+                New Game
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button onPress={startGame} disabled={!readyToStart || creatingGame} variant="onModalHeader">
+                Start
+              </Button>
+            </View>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{padding: 5}}>
+            <View style={{flexDirection: 'row', alignItems: 'center', padding: 0}}>
+              <IconButton
+                icon="shuffle"
+                mode="outlined"
+                iconColor={theme.colors.primary}
+                size={typography.fontSizeXXL}
+                onPress={shuffleOrder}
+                disabled={players.length < 2 || creatingGame}
+                style={{marginLeft: 0}}
+              />
+              <View style={{flex: 1, marginBottom: 5}}>
+                <MultiSelectInput
+                  placeholder="Select Friends"
+                  label="Select Friends"
+                  focusPlaceholder='...'
+                  searchPlaceholder="Search..."
+                  renderLeftIcon={(item) => (
+                    <View style={{paddingRight: 10}}>
+                      <Icon
+                        size={typography.fontSizeXS * 2}
+                        name={'user'}
+                      />
+                    </View>
+                  )}
+                  search={true}
+                  data={friends
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(f => ({
+                      label: f.name,
+                      value: f.id,
+                      // Disable if a custom player with the same name exists (case-insensitive)
+                      disabled: players.some(
+                        p => p.name.toLowerCase() === f.name.toLowerCase() && !friends.some(mf => mf.id === p.id)
+                      )
+                    }))}
+                  values={selectedFriendIds}
+                  setValues={handleSetFriendIds as (values: string[]) => void}
+                  valueField="value"
+                  renderItem={(item) => {
+                    const isSelected = selectedFriendIds.includes(item.value);
+                    // Use color constants directly since theme.colors typing is incomplete
+                    const disabledBg = theme.colors.disabled;
+                    const onDisabled = theme.colors.onDisabled;
+                    return (
+                      <View style={{
+                        paddingLeft: 5,
+                        backgroundColor: isSelected ? disabledBg : 'black',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                      }}>
+                        <Avatar 
+                          name={item.label}
+                          size={typography.fontSizeXS * 2}
+                          textSize={TextSizes.S}
+                          variant="circle"
+                          absolute={false}
+                        />
+                        <Text style={{
+                          padding: 10,
+                          color: isSelected ? onDisabled : theme.colors.onBackground
+                        }}>{item.label}</Text>
+                      </View>
+                    );
+                  }}
+                />
               </View>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" style={{padding: 5}}>
-              <View style={{flexDirection: 'row', alignItems: 'center', padding: 0}}>
-                <IconButton
-                  icon="shuffle"
-                  mode="outlined"
-                  iconColor={theme.colors.primary}
-                  size={typography.fontSizeXXL}
-                  onPress={shuffleOrder}
-                  disabled={players.length < 2 || creatingGame}
-                  style={{marginLeft: 0}}
-                />
-                <View style={{flex: 1, marginBottom: 5}}>
-                  <MultiSelectInput
-                    placeholder="Select Friends"
-                    label="Select Friends"
-                    focusPlaceholder='...'
-                    searchPlaceholder="Search..."
-                    renderLeftIcon={(item) => (
-                      <View style={{paddingRight: 10}}>
-                        <Icon
-                          size={typography.fontSizeXS * 2}
-                          name={'user'}
-                        />
-                      </View>
-                    )}
-                    search={true}
-                    data={friends
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(f => ({
-                        label: f.name,
-                        value: f.id,
-                        // Disable if a custom player with the same name exists (case-insensitive)
-                        disabled: players.some(
-                          p => p.name.toLowerCase() === f.name.toLowerCase() && !friends.some(mf => mf.id === p.id)
-                        )
-                      }))}
-                    values={selectedFriendIds}
-                    setValues={handleSetFriendIds as (values: string[]) => void}
-                    valueField="value"
-                    renderItem={(item) => {
-                      const isSelected = selectedFriendIds.includes(item.value);
-                      // Use color constants directly since theme.colors typing is incomplete
-                      const disabledBg = theme.colors.disabled;
-                      const onDisabled = theme.colors.onDisabled;
-                      return (
-                        <View style={{
-                          paddingLeft: 5,
-                          backgroundColor: isSelected ? disabledBg : 'black',
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                        }}>
-                          <Avatar 
-                            name={item.label}
-                            size={typography.fontSizeXS * 2}
-                            textSize={TextSizes.S}
-                            variant="circle"
-                            absolute={false}
-                          />
-                          <Text style={{
-                            padding: 10,
-                            color: isSelected ? onDisabled : theme.colors.onBackground
-                          }}>{item.label}</Text>
-                        </View>
-                      );
-                    }}
+            {/* Chips for all players */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+              {players.map(player => (
+                <Chip
+                  key={player.id}
+                  icon={() => (
+                    <Avatar 
+                      name={player.name}
+                      size={typography.fontSizeS * 2}
+                      textSize={TextSizes.S}
+                      variant="circle"
+                      absolute={false}
+                    />
+                  )}
+                  closeIcon={() => (
+                    <Icon size={typography.fontSizeS * 2} name="close" />
+                  )}
+                  onClose={() => removePlayer(player.id)}
+                  style={{ marginRight: 6, marginBottom: 6 }}
+                >
+                  {player.name}
+                </Chip>
+              ))}
+            </View>
+            {/* Add New Player button */}
+            <Button onPress={() => setShowAddModal(true)} style={{ marginBottom: 10 }}>
+              Add New Player
+            </Button>
+            {/* Modal for adding custom player */}
+            <Modal
+              isVisible={showAddModal}
+              onBackButtonPress={() => setShowAddModal(false)}
+              onBackdropPress={() => setShowAddModal(false)}
+              avoidKeyboard={true}
+              style={{ padding: 0, margin: 0 }}
+            >
+              <View style={styles.modalBody}>
+                <View style={styles.modalHeader}>
+                  <View style={{ flex: 1, alignItems: "flex-start" }}>
+                    <Button
+                      variant="onModalHeader"
+                      onPress={() => setShowAddModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </View>
+                  <View style={{ flex: 1, alignItems: "center" }}>
+                    <Text color={theme.colors.onBackground} bold>
+                      Add Player
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button onPress={handleAddCustomPlayer} variant="onModalHeader" disabled={!newPlayerName.trim()}>
+                      Add
+                    </Button>
+                  </View>
+                </View>
+                <View style={{ padding: 10, alignItems: "center" }}>
+                  <TextInput
+                    value={newPlayerName}
+                    onChangeText={setNewPlayerName}
+                    label="Player Name"
+                    autoCapitalize="words"
+                    autoFocus
+                    onSubmitEditing={handleAddCustomPlayer}
+                    returnKeyType="done"
+                    style={[
+                      styles.textInput,
+                      styles.modalTextInput,
+                      styles.textInputWrapper,
+                    ]}
                   />
                 </View>
               </View>
-              {/* Chips for all players */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
-                {players.map(player => (
-                  <Chip
-                    key={player.id}
-                    icon={() => (
-                      <Avatar 
-                        name={player.name}
-                        size={typography.fontSizeXS * 2}
-                        textSize={TextSizes.S}
-                        variant="circle"
-                        absolute={false}
-                      />
-                    )}
-                    closeIcon={() => (
-                      <Icon size={typography.fontSizeXS * 2} name="close" />
-                    )}
-                    onClose={() => removePlayer(player.id)}
-                    style={{ marginRight: 6, marginBottom: 6 }}
-                  >
-                    {player.name}
-                  </Chip>
-                ))}
-              </View>
-              {/* Add New Player button */}
-              <Button onPress={() => setShowAddModal(true)} style={{ marginBottom: 10 }}>
-                Add New Player
-              </Button>
-              {/* Modal for adding custom player */}
-              <Modal {...({ isVisible: showAddModal, onBackdropPress: () => setShowAddModal(false), avoidKeyboard: true, style: { padding: 0, margin: 0 } } as any)}>
-                <View style={styles.modalBackground}>
-                  <View style={styles.modalBody}>
-                    <View style={styles.modalHeader}>
-                      <View style={{ flex: 1, alignItems: "flex-start" }}>
-                        <Button
-                          variant="onModalHeader"
-                          onPress={() => setShowAddModal(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </View>
-                      <View style={{ flex: 1, alignItems: "center" }}>
-                        <Text color={theme.colors.onBackground} bold>
-                          Add Player
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Button onPress={handleAddCustomPlayer} variant="onModalHeader" disabled={!newPlayerName.trim()}>
-                          Add
-                        </Button>
-                      </View>
-                    </View>
-                    <View style={{ padding: 10, alignItems: "center" }}>
-                      <TextInput
-                        value={newPlayerName}
-                        onChangeText={setNewPlayerName}
-                        label="Player Name"
-                        autoCapitalize="words"
-                        autoFocus
-                        onSubmitEditing={handleAddCustomPlayer}
-                        returnKeyType="done"
-                        style={[
-                          styles.textInput,
-                          styles.modalTextInput,
-                          styles.textInputWrapper,
-                        ]}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </Modal>
-              <View style={styles.textInputWrapper}>
-                <TextInput 
-                  value={winningScore} 
-                  onChangeText={setWinningScore}
-                  label="Target Score" 
-                  keyboardType="number-pad"
-                  placeholder="Points to Win"
-                  clearButtonMode="while-editing"
-                  maxLength={3}
-                />
-              </View>
-              <View style={styles.textInputWrapper}>
-                <TextInput 
-                  label='Fall-Back-To Points'
-                  value={goBackToScore}
-                  onChangeText={setGoBackToScore}
-                  keyboardType="number-pad"
-                  placeholder="Go-Over Points"
-                  clearButtonMode="while-editing"
-                  maxLength={3}
-                />
-              </View>
-              <View style={styles.inputWrapper}>
-                <Text>3-Misses and You're Out:</Text>
-                <Switch
-                  value={outAfterThreeMisses}
-                  onValueChange={setOutAfterThreeMisses}
-                />
-              </View>
-              <View style={styles.inputWrapper}>
-                <Text>3-Overs and You're Out:</Text>
-                <Switch
-                  value={outAfterThreeTimesOver}
-                  onValueChange={setOutAfterThreeTimesOver}
-                />
-              </View>
-              {creatingGame && (
-                <ActivityIndicator size="large" />
-              )}
-              {error && <Text color={theme.colors.error}>{error}</Text>}
-            </ScrollView>
-          </View>
-        </Pressable>
+            </Modal>
+            <View style={styles.textInputWrapper}>
+              <TextInput 
+                value={winningScore} 
+                onChangeText={setWinningScore}
+                label="Target Score" 
+                keyboardType="number-pad"
+                placeholder="Points to Win"
+                clearButtonMode="while-editing"
+                maxLength={3}
+              />
+            </View>
+            <View style={styles.textInputWrapper}>
+              <TextInput 
+                label='Fall-Back-To Points'
+                value={goBackToScore}
+                onChangeText={setGoBackToScore}
+                keyboardType="number-pad"
+                placeholder="Go-Over Points"
+                clearButtonMode="while-editing"
+                maxLength={3}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text>3-Misses and You're Out:</Text>
+              <Switch
+                value={outAfterThreeMisses}
+                onValueChange={setOutAfterThreeMisses}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text>3-Overs and You're Out:</Text>
+              <Switch
+                value={outAfterThreeTimesOver}
+                onValueChange={setOutAfterThreeTimesOver}
+              />
+            </View>
+            {creatingGame && (
+              <ActivityIndicator size="large" />
+            )}
+            {error && <Text color={theme.colors.error}>{error}</Text>}
+          </ScrollView>
+        </View>
       </Modal>
     </>
   );
@@ -417,24 +420,6 @@ const useStyles = (theme: any) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 10,
-    },
-    modalBackground: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(52, 52, 52, 0.8)',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    modalBody: {
-      backgroundColor: theme.colors.background,
-      borderRadius: 10,
-      justifyContent: 'flex-start',
-      overflow: 'hidden',
-      width: '90%',
-      maxWidth: 400,
     },
   });
 }

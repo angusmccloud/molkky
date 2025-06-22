@@ -6,8 +6,13 @@ import {
 
 const Modal = (props: ModalProps) => {
   const theme = useTheme();
+  const {
+    backdropColor = 'rgba(52, 52, 52, 0.8)',
+    backdropOpacity = 1,
+    ...restOfProps
+  } = props;
   return (
-    <RNModal {...props} backdropColor={theme.colors.modalBackground} />
+    <RNModal {...restOfProps} backdropColor={backdropColor} backdropOpacity={backdropOpacity} />
   )
 };
 

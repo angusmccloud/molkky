@@ -188,251 +188,250 @@ const AuthModal = () => {
       <Modal
         isVisible={showModal}
         onBackButtonPress={closeModal}
+        onBackdropPress={closeModal}
         avoidKeyboard={true}
         style={{ padding: 0, margin: 0 }}
       >
-        <Pressable style={styles.modalBackground} onPress={closeModal}>
-          <View style={styles.modalBody}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1, alignItems: "flex-start" }}>
-                <Button
-                  variant="onModalHeader"
-                  onPress={closeModal}
-                  size="small"
-                >
-                  Cancel
-                </Button>
-              </View>
-              <View style={{ flex: 1, alignItems: "center" }}>
-                <Text color={theme.colors.onBackground} bold size="M">
-                  {authStatus.isAuthed
-                    ? "User"
-                    : currentView === "login"
-                    ? "Sign In"
-                    : currentView === "create"
-                    ? "Sign Up"
-                    : "Reset Password"}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}></View>
+        <View style={styles.modalBody}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1, alignItems: "flex-start" }}>
+              <Button
+                variant="onModalHeader"
+                onPress={closeModal}
+                size="small"
+              >
+                Cancel
+              </Button>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {authStatus.isAuthed && (
-                <View style={styles.logoutWrapper}>
-                  <Text style={{ marginBottom: 10 }}>
-                    You are currently logged in as {authStatus.name} (
-                    {authStatus.email})
-                  </Text>
-                  <Button
-                    variant="primary"
-                    onPress={logoutPressHandler}
-                    disabled={authInProgress}
-                  >
-                    Logout
-                  </Button>
-                  {/* <View style={{ paddingTop: 10 }}>
-                    <Button
-                      text="Manage Profile"
-                      variant="secondary"
-                      onPress={goToUserPage}
-                    />
-                  </View> */}
-                </View>
-              )}
-              {!authStatus.isAuthed && currentView === "login" && (
-                <View style={{ padding: 10, alignItems: "center" }}>
-                  <Text bold style={{ marginBottom: 10 }}>
-                    Login to track your games and see your stats
-                  </Text>
-                  <TextInput
-                    clearButtonMode="while-editing"
-                    maxLength={50}
-                    returnKeyType="next"
-                    label="Email Address"
-                    value={email}
-                    enablesReturnKeyAutomatically={true}
-                    autoCompleteType="email"
-                    textContentType="emailAddress"
-                    keyboardType="email-address"
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      setFormError("");
-                    }}
-                    onSubmitEditing={() => ref_loginPassword.current.focus()}
-                  />
-                  <TextInput
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setFormError("");
-                    }}
-                    onSubmitEditing={processSignIn}
-                    label="Password"
-                    autoCompleteType="password"
-                    clearButtonMode="while-editing"
-                    enablesReturnKeyAutomatically={true}
-                    maxLength={50}
-                    returnKeyType="go"
-                    secureTextEntry={true}
-                    textContentType="password"
-                    value={password}
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    ref={ref_loginPassword}
-                  />
-                  {formError !== "" && (
-                    <Text
-                      color={theme.colors.error}
-                      style={{ marginTop: 10, marginBottom: 10 }}
-                    >
-                      {formError}
-                    </Text>
-                  )}
-                  <Button
-                    variant="primary"
-                    onPress={processSignIn}
-                    disabled={authInProgress}
-                  >
-                    Login
-                  </Button>
-                  {/* <View style={{ marginTop: 10 }}>
-                    <Button
-                      text="Forgot Password?"
-                      variant="primary"
-                      onPress={() => changeViews("forgotPassword")}
-                      disabled={authInProgress}
-                    />
-                  </View> */}
-                  <View style={{ marginTop: 10 }}>
-                    <Button
-                      variant="secondary"
-                      onPress={() => changeViews("create")}
-                    >
-                      Create New Account
-                    </Button>
-                  </View>
-                </View>
-              )}
-              {!authStatus.isAuthed && currentView === "create" && (
-                <View style={styles.modalContentWrapper}>
-                  <Text bold style={{ paddingBottom: 10, paddingTop: 10, paddingLeft: 5, paddingRight: 5 }}>
-                    Create a new account to track your games and see your stats
-                  </Text>
-                  <TextInput
-                    clearButtonMode="while-editing"
-                    maxLength={50}
-                    returnKeyType="next"
-                    label="Email Address"
-                    value={email}
-                    enablesReturnKeyAutomatically={true}
-                    autoCompleteType="email"
-                    textContentType="emailAddress"
-                    keyboardType="email-address"
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      setFormError("");
-                    }}
-                    onSubmitEditing={() => ref_createName.current.focus()}
-                  />
-                  <TextInput
-                    clearButtonMode="while-editing"
-                    maxLength={50}
-                    returnKeyType="next"
-                    label="Name"
-                    value={name}
-                    autoCapitalize="words"
-                    enablesReturnKeyAutomatically={true}
-                    textContentType="name"
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    onChangeText={(text) => setName(text)}
-                    onSubmitEditing={() => ref_createPassword.current.focus()}
-                    ref={ref_createName}
-                  />
-                  <TextInput
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setFormError("");
-                    }}
-                    label="Password"
-                    autoCompleteType="password"
-                    clearButtonMode="while-editing"
-                    enablesReturnKeyAutomatically={true}
-                    maxLength={50}
-                    returnKeyType="next"
-                    secureTextEntry={true}
-                    textContentType="newPassword"
-                    value={password}
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    ref={ref_createPassword}
-                    onSubmitEditing={() =>
-                      ref_createPasswordConfirm.current.focus()
-                    }
-                  />
-                  <TextInput
-                    onChangeText={(text) => setConfirmPassword(text)}
-                    onSubmitEditing={() => processCreateAccount()}
-                    placeholder="Confirm Password"
-                    label="Confirm Password"
-                    autoCompleteType="password"
-                    clearButtonMode="while-editing"
-                    enablesReturnKeyAutomatically={true}
-                    maxLength={50}
-                    returnKeyType="go"
-                    secureTextEntry={true}
-                    textContentType="newPassword"
-                    value={confirmPassword}
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                    ref={ref_createPasswordConfirm}
-                  />
-                  {formError !== "" && (
-                    <Text style={{ marginTop: 10, marginBottom: 10 }} color={theme.colors.error}>
-                      {formError}
-                    </Text>
-                  )}
-                  <Button
-                    variant="primary"
-                    onPress={processCreateAccount}
-                    disabled={authInProgress}
-                  >
-                    Create Account
-                  </Button>
-                  <View style={{ marginTop: 10, marginBottom: 10 }}>
-                    <Button
-                      variant="secondary"
-                      onPress={() => changeViews("login")}
-                    >
-                      Login to Existing Account
-                    </Button>
-                  </View>
-                </View>
-              )}
-            </ScrollView>
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text color={theme.colors.onBackground} bold size="M">
+                {authStatus.isAuthed
+                  ? "User"
+                  : currentView === "login"
+                  ? "Sign In"
+                  : currentView === "create"
+                  ? "Sign Up"
+                  : "Reset Password"}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}></View>
           </View>
-        </Pressable>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {authStatus.isAuthed && (
+              <View style={styles.logoutWrapper}>
+                <Text style={{ marginBottom: 10 }}>
+                  You are currently logged in as {authStatus.name} (
+                  {authStatus.email})
+                </Text>
+                <Button
+                  variant="primary"
+                  onPress={logoutPressHandler}
+                  disabled={authInProgress}
+                >
+                  Logout
+                </Button>
+                {/* <View style={{ paddingTop: 10 }}>
+                  <Button
+                    text="Manage Profile"
+                    variant="secondary"
+                    onPress={goToUserPage}
+                  />
+                </View> */}
+              </View>
+            )}
+            {!authStatus.isAuthed && currentView === "login" && (
+              <View style={{ padding: 10, alignItems: "center" }}>
+                <Text bold style={{ marginBottom: 10 }}>
+                  Login to track your games and see your stats
+                </Text>
+                <TextInput
+                  clearButtonMode="while-editing"
+                  maxLength={50}
+                  returnKeyType="next"
+                  label="Email Address"
+                  value={email}
+                  enablesReturnKeyAutomatically={true}
+                  autoCompleteType="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setFormError("");
+                  }}
+                  onSubmitEditing={() => ref_loginPassword.current.focus()}
+                />
+                <TextInput
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setFormError("");
+                  }}
+                  onSubmitEditing={processSignIn}
+                  label="Password"
+                  autoCompleteType="password"
+                  clearButtonMode="while-editing"
+                  enablesReturnKeyAutomatically={true}
+                  maxLength={50}
+                  returnKeyType="go"
+                  secureTextEntry={true}
+                  textContentType="password"
+                  value={password}
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  ref={ref_loginPassword}
+                />
+                {formError !== "" && (
+                  <Text
+                    color={theme.colors.error}
+                    style={{ marginTop: 10, marginBottom: 10 }}
+                  >
+                    {formError}
+                  </Text>
+                )}
+                <Button
+                  variant="primary"
+                  onPress={processSignIn}
+                  disabled={authInProgress}
+                >
+                  Login
+                </Button>
+                {/* <View style={{ marginTop: 10 }}>
+                  <Button
+                    text="Forgot Password?"
+                    variant="primary"
+                    onPress={() => changeViews("forgotPassword")}
+                    disabled={authInProgress}
+                  />
+                </View> */}
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    variant="secondary"
+                    onPress={() => changeViews("create")}
+                  >
+                    Create New Account
+                  </Button>
+                </View>
+              </View>
+            )}
+            {!authStatus.isAuthed && currentView === "create" && (
+              <View style={styles.modalContentWrapper}>
+                <Text bold style={{ paddingBottom: 10, paddingTop: 10, paddingLeft: 5, paddingRight: 5 }}>
+                  Create a new account to track your games and see your stats
+                </Text>
+                <TextInput
+                  clearButtonMode="while-editing"
+                  maxLength={50}
+                  returnKeyType="next"
+                  label="Email Address"
+                  value={email}
+                  enablesReturnKeyAutomatically={true}
+                  autoCompleteType="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setFormError("");
+                  }}
+                  onSubmitEditing={() => ref_createName.current.focus()}
+                />
+                <TextInput
+                  clearButtonMode="while-editing"
+                  maxLength={50}
+                  returnKeyType="next"
+                  label="Name"
+                  value={name}
+                  autoCapitalize="words"
+                  enablesReturnKeyAutomatically={true}
+                  textContentType="name"
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  onChangeText={(text) => setName(text)}
+                  onSubmitEditing={() => ref_createPassword.current.focus()}
+                  ref={ref_createName}
+                />
+                <TextInput
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setFormError("");
+                  }}
+                  label="Password"
+                  autoCompleteType="password"
+                  clearButtonMode="while-editing"
+                  enablesReturnKeyAutomatically={true}
+                  maxLength={50}
+                  returnKeyType="next"
+                  secureTextEntry={true}
+                  textContentType="newPassword"
+                  value={password}
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  ref={ref_createPassword}
+                  onSubmitEditing={() =>
+                    ref_createPasswordConfirm.current.focus()
+                  }
+                />
+                <TextInput
+                  onChangeText={(text) => setConfirmPassword(text)}
+                  onSubmitEditing={() => processCreateAccount()}
+                  placeholder="Confirm Password"
+                  label="Confirm Password"
+                  autoCompleteType="password"
+                  clearButtonMode="while-editing"
+                  enablesReturnKeyAutomatically={true}
+                  maxLength={50}
+                  returnKeyType="go"
+                  secureTextEntry={true}
+                  textContentType="newPassword"
+                  value={confirmPassword}
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  ref={ref_createPasswordConfirm}
+                />
+                {formError !== "" && (
+                  <Text style={{ marginTop: 10, marginBottom: 10 }} color={theme.colors.error}>
+                    {formError}
+                  </Text>
+                )}
+                <Button
+                  variant="primary"
+                  onPress={processCreateAccount}
+                  disabled={authInProgress}
+                >
+                  Create Account
+                </Button>
+                <View style={{ marginTop: 10, marginBottom: 10 }}>
+                  <Button
+                    variant="secondary"
+                    onPress={() => changeViews("login")}
+                  >
+                    Login to Existing Account
+                  </Button>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </View>
       </Modal>
     </>
   );
