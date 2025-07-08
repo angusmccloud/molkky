@@ -61,26 +61,64 @@ const GameBoard = (props) => {
     winningPlayerId 
   } = game;
 
+  const getNextPlayerId = (currentPlayerId) => {
+    const currentPlayerIndex = players.findIndex(player => player.id === currentPlayerId);
+    let nextIndex = (currentPlayerIndex + 1) % players.length;
+    
+    // Skip eliminated players
+    while (scores.find(s => s.playerId === players[nextIndex].id).isOut) {
+      nextIndex = (nextIndex + 1) % players.length;
+      // If we've gone through all players and they're all eliminated except one, break
+      if (nextIndex === currentPlayerIndex) break;
+    }
+    
+    return players[nextIndex].id;
+  };
+
+  const checkForWinByElimination = (newScores) => {
+    const playersNotOut = newScores.filter(score => !score.isOut);
+    return playersNotOut.length === 1 ? playersNotOut[0].playerId : null;
+  };
+
   const logScore = async (score) => {
     if (!turnPosting) {
       setTurnPosting(true);
 
       const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
-      const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
+      const nextPlayerId = getNextPlayerId(whichPlayersTurn);
       const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
       const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
       const endingScore = startingScore + score > rules.winningScore ? rules.goBackToScore : startingScore + score;
       const winningTurn = endingScore === rules.winningScore;
-      const newScores = scores.map(score => {
-        if (score.playerId === whichPlayersTurn) {
+      const wentOver = startingScore + score > rules.winningScore;
+      const gotZero = score === 0;
+      
+      const newScores = scores.map(scoreEntry => {
+        if (scoreEntry.playerId === whichPlayersTurn) {
+          const currentMisses = gotZero ? scoreEntry.misses + 1 : 0;
+          const currentTimesOver = wentOver ? scoreEntry.timesOver + 1 : scoreEntry.timesOver;
+          
+          // Check for elimination
+          const eliminatedByMisses = rules.outAfterThreeMisses && currentMisses >= 3;
+          const eliminatedByOvers = rules.outAfterThreeTimesOver && currentTimesOver >= 3;
+          const isOut = eliminatedByMisses || eliminatedByOvers;
+          
           return {
-            playerId: score.playerId,
+            ...scoreEntry,
             score: endingScore,
+            misses: currentMisses,
+            timesOver: currentTimesOver,
+            isOut: isOut,
           };
         } else {
-          return score;
+          return scoreEntry;
         }
       });
+
+      // Check for win by elimination
+      const winByElimination = checkForWinByElimination(newScores);
+      const finalWinningTurn = winningTurn || winByElimination;
+      const finalWinningPlayerId = winningTurn ? whichPlayersTurn : winByElimination;
 
       const thisTurn = {
         playerId: whichPlayersTurn,
@@ -92,7 +130,8 @@ const GameBoard = (props) => {
         endingScore,
         skipped: false,
         wentOver: startingScore + score > rules.winningScore,
-        eliminated: false,
+        eliminated: newScores.find(s => s.playerId === whichPlayersTurn).isOut,
+        gotZero: score === 0,
       };
       const newTurns = [...turns, thisTurn];
 
@@ -101,16 +140,16 @@ const GameBoard = (props) => {
         const newGame = {
           ...game,
           updatedAt: new Date().toISOString(),
-          whichPlayersTurn: nextPlayerId,
+          whichPlayersTurn: finalWinningTurn ? whichPlayersTurn : nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
           scores: newScores,
-          gameStatus: winningTurn ? 'finished' : game.gameStatus,
-          winningPlayerId: winningTurn ? whichPlayersTurn : game.winningPlayerId ? game.winningPlayerId : null,
+          gameStatus: finalWinningTurn ? 'finished' : game.gameStatus,
+          winningPlayerId: finalWinningTurn ? finalWinningPlayerId : game.winningPlayerId ? game.winningPlayerId : null,
         };
         updateGame(game.id, newGame);
         setGame(newGame);
-        if (winningTurn) {
+        if (finalWinningTurn) {
           updateGameStatus(newGame);
         }
         setTurnPosting(false);
@@ -131,14 +170,36 @@ const GameBoard = (props) => {
 
       const nextPlayerId = lastTurn.playerId;
       const newRound = lastTurn.gameRound;
-      const newScores = scores.map(score => {
-        if (score.playerId === lastTurn.playerId) {
+      const newScores = scores.map(scoreEntry => {
+        if (scoreEntry.playerId === lastTurn.playerId) {
+          // Calculate what the misses and timesOver should be after undoing
+          let newMisses = scoreEntry.misses;
+          let newTimesOver = scoreEntry.timesOver;
+          
+          // If the last turn was a zero or skip, decrease misses
+          if ((lastTurn.gotZero || lastTurn.skipped) && newMisses > 0) {
+            newMisses = newMisses - 1;
+          }
+          
+          // If the last turn went over, decrease timesOver
+          if (lastTurn.wentOver && newTimesOver > 0) {
+            newTimesOver = newTimesOver - 1;
+          }
+          
+          // Check if player should still be eliminated after undo
+          const eliminatedByMisses = rules.outAfterThreeMisses && newMisses >= 3;
+          const eliminatedByOvers = rules.outAfterThreeTimesOver && newTimesOver >= 3;
+          const isOut = eliminatedByMisses || eliminatedByOvers;
+          
           return {
-            playerId: score.playerId,
+            ...scoreEntry,
             score: lastTurn.startingScore,
+            misses: newMisses,
+            timesOver: newTimesOver,
+            isOut: isOut,
           };
         } else {
-          return score;
+          return scoreEntry;
         }
       });
 
@@ -171,9 +232,30 @@ const GameBoard = (props) => {
       setTurnPosting(true);
 
       const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
-      const nextPlayerId = players[currentPlayerIndex + 1] ? players[currentPlayerIndex + 1].id : players[0].id;
+      const nextPlayerId = getNextPlayerId(whichPlayersTurn);
       const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
       const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+
+      // Handle miss counting for skip (treated as a zero)
+      const newScores = scores.map(scoreEntry => {
+        if (scoreEntry.playerId === whichPlayersTurn) {
+          const currentMisses = scoreEntry.misses + 1; // Skip counts as a miss
+          const eliminatedByMisses = rules.outAfterThreeMisses && currentMisses >= 3;
+          const eliminatedByOvers = rules.outAfterThreeTimesOver && scoreEntry.timesOver >= 3;
+          const isOut = eliminatedByMisses || eliminatedByOvers;
+          
+          return {
+            ...scoreEntry,
+            misses: currentMisses,
+            isOut: isOut,
+          };
+        } else {
+          return scoreEntry;
+        }
+      });
+
+      // Check for win by elimination
+      const winByElimination = checkForWinByElimination(newScores);
 
       const thisTurn = {
         playerId: whichPlayersTurn,
@@ -185,7 +267,8 @@ const GameBoard = (props) => {
         endingScore: startingScore,
         skipped: true,
         wentOver: false,
-        eliminated: false,
+        eliminated: newScores.find(s => s.playerId === whichPlayersTurn).isOut,
+        gotZero: true, // Skip counts as getting zero
       };
       const newTurns = [...turns, thisTurn];
 
@@ -193,13 +276,16 @@ const GameBoard = (props) => {
         const newGame = {
           ...game,
           updatedAt: new Date().toISOString(),
-          whichPlayersTurn: nextPlayerId,
+          whichPlayersTurn: winByElimination ? whichPlayersTurn : nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
+          scores: newScores,
+          gameStatus: winByElimination ? 'finished' : game.gameStatus,
+          winningPlayerId: winByElimination ? winByElimination : game.winningPlayerId,
         };
         setGame(newGame);
         updateGame(game.id, newGame);
-        if (winningTurn) {
+        if (winByElimination) {
           updateGameStatus(newGame);
         }
         setTurnPosting(false);
@@ -254,12 +340,15 @@ const GameBoard = (props) => {
   });
   playersInOrder.push(...endOfOrder);
 
+  // Don't disable buttons for eliminated players - they can still be undone
+  const currentPlayerEliminated = scores.find(s => s.playerId === whichPlayersTurn)?.isOut;
+
   return (
     <View style={styles.pageWrapper}>
       <ScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {playersInOrder.map((player, index) => {
           return (
-            <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} updatedAt={updatedAt} />
+            <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} updatedAt={updatedAt} rules={rules} />
           )
         })}
       </ScrollView>
@@ -354,8 +443,14 @@ const GameBoard = (props) => {
           <>
             <View style={{ padding: 10, alignItems: 'center' }}>
               <Text bold size='XL'>
-                {players.find((p) => p.id === winningPlayerId).name} Wins!
+                {players.find((p) => p.id === winningPlayerId)?.name || 'Winner'} Wins!
               </Text>
+              {/* Show if win was by elimination */}
+              {scores.filter(s => !s.isOut).length === 1 && (
+                <Text size='M' style={{ color: theme.colors.primary, marginTop: 5 }}>
+                  Victory by Elimination!
+                </Text>
+              )}
             </View>
             <View style={styles.buttonsWrapper}>
               <View style={styles.twoButtonWrapper}>
