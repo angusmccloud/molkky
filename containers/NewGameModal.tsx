@@ -32,7 +32,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   const [readyToStart, setReadyToStart] = useState(false);
   const [creatingGame, setCreatingGame] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
 
   const authContext = useContext(AuthContext);
@@ -56,7 +55,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
     setReadyToStart(false);
     setCreatingGame(false);
     setError(null);
-    setShowAddModal(false);
     setNewPlayerName('');
     closeModal();
   };
@@ -83,7 +81,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
     ) return;
     setPlayers([...players, { id: String(uuid.v4()), name: trimmed }]);
     setNewPlayerName('');
-    setShowAddModal(false);
   };
 
   // Remove player (friend or custom)
@@ -113,7 +110,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
       }
 
       const gameData = {
-        uid: user.uid,
+        uid: user!.uid,
         players: players.map(player => ({
           id: player.id,
           name: player.name,
@@ -182,6 +179,8 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
         onBackButtonPress={resetModal}
         onBackdropPress={resetModal}
         avoidKeyboard={true}
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
         style={{ padding: 0, margin: 0 }}
       >
         <View style={styles.modalBody}>
@@ -190,7 +189,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               <Button
                 variant="onModalHeader"
                 onPress={resetModal}
-                size="small"
               >
                 Cancel
               </Button>
@@ -222,16 +220,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                   placeholder="Select Friends"
                   label="Select Friends"
                   focusPlaceholder='...'
-                  searchPlaceholder="Search..."
-                  renderLeftIcon={(item) => (
-                    <View style={{paddingRight: 10}}>
-                      <Icon
-                        size={typography.fontSizeXS * 2}
-                        name={'user'}
-                      />
-                    </View>
-                  )}
-                  search={true}
                   data={friends
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map(f => ({
@@ -305,57 +293,30 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 </Animated.View>
               ))}
             </View>
-            {/* Add New Player button */}
-            <Button onPress={() => setShowAddModal(true)} style={{ marginBottom: 10 }}>
-              Add New Player
-            </Button>
-            {/* Modal for adding custom player */}
-            <Modal
-              isVisible={showAddModal}
-              onBackButtonPress={() => setShowAddModal(false)}
-              onBackdropPress={() => setShowAddModal(false)}
-              avoidKeyboard={true}
-              style={{ padding: 0, margin: 0 }}
-            >
-              <View style={styles.modalBody}>
-                <View style={styles.modalHeader}>
-                  <View style={{ flex: 1, alignItems: "flex-start" }}>
-                    <Button
-                      variant="onModalHeader"
-                      onPress={() => setShowAddModal(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </View>
-                  <View style={{ flex: 1, alignItems: "center" }}>
-                    <Text color={theme.colors.onBackground} bold>
-                      Add Player
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button onPress={handleAddCustomPlayer} variant="onModalHeader" disabled={!newPlayerName.trim()}>
-                      Add
-                    </Button>
-                  </View>
-                </View>
-                <View style={{ padding: 10, alignItems: "center" }}>
-                  <TextInput
-                    value={newPlayerName}
-                    onChangeText={setNewPlayerName}
-                    label="Player Name"
-                    autoCapitalize="words"
-                    autoFocus
-                    onSubmitEditing={handleAddCustomPlayer}
-                    returnKeyType="done"
-                    style={[
-                      styles.textInput,
-                      styles.modalTextInput,
-                      styles.textInputWrapper,
-                    ]}
-                  />
-                </View>
+            {/* Add New Player input */}
+            <View style={styles.addPlayerContainer}>
+              <View style={styles.addPlayerInputContainer}>
+                <TextInput
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  label="Add New Player"
+                  placeholder="Enter player name"
+                  autoCapitalize="words"
+                  onSubmitEditing={handleAddCustomPlayer}
+                  returnKeyType="done"
+                  style={styles.addPlayerInput}
+                />
               </View>
-            </Modal>
+              <IconButton
+                icon="plus"
+                mode="outlined"
+                iconColor={theme.colors.primary}
+                size={typography.fontSizeL}
+                onPress={handleAddCustomPlayer}
+                disabled={!newPlayerName.trim() || creatingGame}
+                style={styles.addPlayerButton}
+              />
+            </View>
             <View style={styles.inputWrapper}>
               <Text>3-Misses and You're Out:</Text>
               <Switch
@@ -428,6 +389,22 @@ const useStyles = (theme: any) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 10,
+    },
+    addPlayerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+      marginTop: -6,
+    },
+    addPlayerInputContainer: {
+      flex: 1,
+      marginRight: 10,
+    },
+    addPlayerInput: {
+      // Additional styles can be added here if needed
+    },
+    addPlayerButton: {
+      // Additional styles can be added here if needed
     },
   });
 }

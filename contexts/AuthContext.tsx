@@ -7,7 +7,7 @@ import { updateUserFriends } from '@/services/users';
 // Define a User type that extends Firebase's user by adding additional properties (name, friends)
 export interface User extends firebaseUser {
   name?: string; // Optional name property
-  friends?: string[]; // Optional friends list
+  friends?: { id: string; name: string }[]; // Optional friends list
   email: string; // Required email property
 }
 
