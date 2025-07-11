@@ -2,37 +2,62 @@
   "expo": {
     "name": "Mölkky Scores",
     "slug": "molkky",
-    "version": "1.0.0",
+    "version": "2.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0c62fb"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connortyrrell.molkky",
-      "buildNumber": "1.0.0"
+      "buildNumber": "2.0.1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "requireFullScreen": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0c62fb"
       },
       "package": "com.connortyrrell.molkky",
-      "versionCode": 1
+      "softwareKeyboardLayoutMode": "pan",
+      "versionCode": 2
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
-    "description": ""
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0c62fb"
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-screen-orientation",
+          {
+            "initialOrientation": "PORTRAIT_UP"
+          }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "65a51664-6fc5-4a8f-b49b-2d5b7ef9cac7"
+      }
+    }
   }
 }
