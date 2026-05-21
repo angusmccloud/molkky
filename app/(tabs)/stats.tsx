@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react';
-import { View, Pressable, StyleSheet, FlatList, ListRenderItemInfo } from 'react-native';
+import { View, Pressable, StyleSheet, FlatList, ListRenderItemInfo, Platform } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Text, { TextSizes } from '@/components/Text';
 import Avatar from '@/components/Avatar';
 import Icon from '@/components/Icon';
@@ -9,11 +10,20 @@ import PageWrapper from '@/components/PageWrapper';
 import typography from '@/constants/Typography';
 import { AuthContext } from '@/contexts/AuthContext';
 import { getAllUsergames } from '@/services/games';
-import { getUser } from '@/services/users';
+import type { Game } from '@/services/localStore';
 
 type Friend = { id: string; name: string };
 type GameHistory = { gameId: string; playerId: string; playerName: string; wonGame: boolean };
-type TurnHistory = { gameId: string; playerId: string; score: number; winnableTurn?: boolean; wonOnTurn?: boolean; skipped?: boolean; wentOver?: boolean; eliminated?: boolean };
+type TurnHistory = {
+  gameId: string;
+  playerId: string;
+  score: number;
+  winnableTurn?: boolean;
+  wonOnTurn?: boolean;
+  skipped?: boolean;
+  wentOver?: boolean;
+  eliminated?: boolean;
+};
 type ScoreHistory = { gameId: string; playerId: string; score: number };
 
 const StatsScreen: React.FC = () => {
@@ -25,44 +35,46 @@ const StatsScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
-  const { user } = authContext;
+  const { effectiveUid, friends: localFriends } = authContext;
+
+  // The tab bar is `position: 'absolute'` on iOS so content scrolls under
+  // it. Pad the bottom of the list so the last item can be scrolled fully
+  // into view above the tab bar.
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
 
   useEffect(() => {
     const loadStats = async () => {
-      // console.log('-- Loading stats for user --', user?.uid);
       setLoading(true);
       try {
-        if (!user) return;
-        // Get user record (for friends)
-        // @ts-ignore
-        const userRecord = await getUser(user.uid);
-        let friendsList: Friend[] = [];
-        if (userRecord?.friends && userRecord.friends.length > 0) {
-          if (typeof userRecord.friends[0] === 'string') {
-            const friendObjs = await Promise.all(
-              userRecord.friends.map(async (fid: string) => {
-                const f = await getUser(fid) as any;
-                return f ? { id: f.id, name: (f.name || f.email || f.id) } : null;
-              })
-            );
-            friendsList = friendObjs.filter(Boolean) as Friend[];
-          } else {
-            friendsList = userRecord.friends.map((f: any) => ({ id: f.id, name: f.name || f.email || f.id }));
+        // Get all finished games for this effective uid from local store.
+        const allGames = (await getAllUsergames(effectiveUid)) as Game[];
+        const finishedGames = allGames.filter((g) => g.gameStatus === 'finished');
+
+        // Friends list comes from local store via AuthContext. Augment with
+        // any player names that appear in finished games but aren't in the
+        // friends list (e.g. custom one-off players) so stats still render.
+        const friendIdSet = new Set(localFriends.map((f) => f.id));
+        const extras = new Map<string, Friend>();
+        for (const g of finishedGames) {
+          for (const p of g.players || []) {
+            if (!friendIdSet.has(p.id) && !extras.has(p.id)) {
+              extras.set(p.id, { id: p.id, name: p.name });
+            }
           }
         }
-        setFriends(friendsList.slice().sort((a: Friend, b: Friend) => (a.name || a.id).localeCompare(b.name || b.id)));
-
-        // Get all finished games for this user
-        // @ts-ignore
-        const allGames = await getAllUsergames(user.uid);
-        const finishedGames = allGames.filter((g: any) => g.gameStatus === 'finished');
+        const combined: Friend[] = [
+          ...localFriends,
+          ...Array.from(extras.values()),
+        ].sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+        setFriends(combined);
 
         // Build histories
         const playerGameHistory: GameHistory[] = [];
         const playerTurnHistory: TurnHistory[] = [];
         const playerScoreHistory: ScoreHistory[] = [];
-        finishedGames.forEach((game: any) => {
-          (game.players || []).forEach((player: any) => {
+        finishedGames.forEach((game) => {
+          (game.players || []).forEach((player) => {
             playerGameHistory.push({
               gameId: game.id,
               playerId: player.id,
@@ -70,7 +82,7 @@ const StatsScreen: React.FC = () => {
               wonGame: game.winningPlayerId === player.id,
             });
           });
-          (game.turns || []).forEach((turn: any) => {
+          (game.turns || []).forEach((turn) => {
             playerTurnHistory.push({
               gameId: game.id,
               playerId: turn.playerId,
@@ -82,7 +94,7 @@ const StatsScreen: React.FC = () => {
               eliminated: turn.eliminated,
             });
           });
-          (game.scores || []).forEach((score: any) => {
+          (game.scores || []).forEach((score) => {
             playerScoreHistory.push({
               gameId: game.id,
               playerId: score.playerId,
@@ -100,8 +112,8 @@ const StatsScreen: React.FC = () => {
       }
     };
 
-    if (user) loadStats();
-  }, [user]);
+    if (effectiveUid) loadStats();
+  }, [effectiveUid, localFriends]);
 
   const keyExtractor = useCallback((item: Friend) => item.id, []);
 
@@ -116,19 +128,15 @@ const StatsScreen: React.FC = () => {
         allScoresHistory={scoresHistory}
       />
     ),
-    [gameHistory, turnHistory, scoresHistory]
+    [gameHistory, turnHistory, scoresHistory],
   );
 
   return (
     <PageWrapper>
-      {!user ? (
-        <View style={{ alignItems: 'center', padding: 20 }}>
-          <Text>You must be logged in and have played games to see your stats.</Text>
-        </View>
-      ) : loading ? (
+      {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text>Loading Stats...</Text>
-          <ActivityIndicator style={{marginTop: 10}} size={100} />
+          <ActivityIndicator style={{ marginTop: 10 }} size={100} />
         </View>
       ) : friends.length === 0 ? (
         <View style={{ alignItems: 'center', padding: 20 }}>
@@ -141,12 +149,12 @@ const StatsScreen: React.FC = () => {
           keyExtractor={keyExtractor}
           ItemSeparatorComponent={Divider}
           style={{ width: '100%' }}
+          contentContainerStyle={{ paddingBottom: bottomInset }}
         />
       )}
     </PageWrapper>
   );
 };
-
 
 interface PlayerStatsProps {
   friend: Friend;
@@ -156,7 +164,13 @@ interface PlayerStatsProps {
   allScoresHistory: ScoreHistory[];
 }
 
-const PlayerStats: React.FC<PlayerStatsProps> = ({ friend, gameHistory, turnHistory, scoresHistory, allScoresHistory }) => {
+const PlayerStats: React.FC<PlayerStatsProps> = ({
+  friend,
+  gameHistory,
+  turnHistory,
+  scoresHistory,
+  allScoresHistory,
+}) => {
   const [expanded, setExpanded] = useState(false);
 
   const gamesPlayed = gameHistory.length;
@@ -178,36 +192,39 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({ friend, gameHistory, turnHist
 
   const toggleExpanded = () => setExpanded((e) => !e);
 
-  const stats = gamesPlayed === 0 ? [] : [
-    {
-      title: 'Winning Percentage',
-      value: `${Math.round((gamesWon / gamesPlayed) * 100)}%${gamesWon > 0 ? ` (${gamesWon})` : ''}`,
-    },
-    {
-      title: 'Second Place Percentage',
-      value: `${Math.round((numberSecondPlace / gamesPlayed) * 100)}%${numberSecondPlace > 0 ? ` (${numberSecondPlace})` : ''}`,
-    },
-    {
-      title: 'Average Points per Game',
-      value: `${gamesPlayed > 0 ? Math.round((totalEndingScores / gamesPlayed) * 10) / 10 : 0}`,
-    },
-    {
-      title: 'Average Points per Throw',
-      value: `${turnHistory.length > 0 ? Math.round((totalPoints / turnHistory.length) * 10) / 10 : 0}`,
-    },
-    {
-      title: 'Winnable Turn Success',
-      value: `${winningTurns} of ${winnableTurns}${winnableTurns > 0 ? ` (${Math.round((winningTurns / winnableTurns) * 100)}%)` : ''}`,
-    },
-    {
-      title: 'Zero Point Turns',
-      value: `${turnHistory.length > 0 ? Math.round((zeroPointTurns / turnHistory.length) * 100) : 0}%`,
-    },
-    {
-      title: 'Overs per Game',
-      value: `${gamesPlayed > 0 ? Math.round((wentOver / gamesPlayed) * 10) / 10 : 0}`,
-    },
-  ];
+  const stats =
+    gamesPlayed === 0
+      ? []
+      : [
+          {
+            title: 'Winning Percentage',
+            value: `${Math.round((gamesWon / gamesPlayed) * 100)}%${gamesWon > 0 ? ` (${gamesWon})` : ''}`,
+          },
+          {
+            title: 'Second Place Percentage',
+            value: `${Math.round((numberSecondPlace / gamesPlayed) * 100)}%${numberSecondPlace > 0 ? ` (${numberSecondPlace})` : ''}`,
+          },
+          {
+            title: 'Average Points per Game',
+            value: `${gamesPlayed > 0 ? Math.round((totalEndingScores / gamesPlayed) * 10) / 10 : 0}`,
+          },
+          {
+            title: 'Average Points per Throw',
+            value: `${turnHistory.length > 0 ? Math.round((totalPoints / turnHistory.length) * 10) / 10 : 0}`,
+          },
+          {
+            title: 'Winnable Turn Success',
+            value: `${winningTurns} of ${winnableTurns}${winnableTurns > 0 ? ` (${Math.round((winningTurns / winnableTurns) * 100)}%)` : ''}`,
+          },
+          {
+            title: 'Zero Point Turns',
+            value: `${turnHistory.length > 0 ? Math.round((zeroPointTurns / turnHistory.length) * 100) : 0}%`,
+          },
+          {
+            title: 'Overs per Game',
+            value: `${gamesPlayed > 0 ? Math.round((wentOver / gamesPlayed) * 10) / 10 : 0}`,
+          },
+        ];
 
   return (
     <View style={playerStatsStyles.wrapper}>
@@ -218,13 +235,13 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({ friend, gameHistory, turnHist
               <Avatar name={friend.name} size={typography.fontSizeXXXL} />
             </View>
             <View>
-              <Text size={TextSizes.M} bold>{String(friend.name)}</Text>
+              <Text size={TextSizes.M} bold>
+                {String(friend.name)}
+              </Text>
               <Text size={TextSizes.XS}>{`${gamesPlayed} Game${gamesPlayed !== 1 ? 's' : ''} Played`}</Text>
             </View>
           </View>
-          {gamesPlayed > 0 && (
-            <Icon name={expanded ? 'expanded' : 'collapsed'} size={typography.fontSizeXL} />
-          )}
+          {gamesPlayed > 0 && <Icon name={expanded ? 'expanded' : 'collapsed'} size={typography.fontSizeXL} />}
         </View>
       </Pressable>
       {expanded && gamesPlayed > 0 && (
@@ -232,7 +249,9 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({ friend, gameHistory, turnHist
           {stats.map((stat) => (
             <View key={stat.title} style={playerStatsStyles.statRow}>
               <View style={{ paddingRight: 5 }}>
-                <Text size={TextSizes.M} bold>{String(stat.title) + ':'}</Text>
+                <Text size={TextSizes.M} bold>
+                  {String(stat.title) + ':'}
+                </Text>
               </View>
               <View>
                 <Text size={TextSizes.M}>{String(stat.value)}</Text>

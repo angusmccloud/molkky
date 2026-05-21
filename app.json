@@ -2,12 +2,11 @@
   "expo": {
     "name": "Mölkky Scores",
     "slug": "molkky",
-    "version": "2.0.1",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connortyrrell.molkky",
@@ -36,19 +35,23 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#0c62fb"
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splash-icon.png",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#000000"
+          },
+          "imageWidth": 200
         }
       ],
       "expo-web-browser",
       [
         "expo-screen-orientation",
-          {
-            "initialOrientation": "PORTRAIT_UP"
-          }
-      ]
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

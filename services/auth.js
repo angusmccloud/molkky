@@ -1,94 +1,54 @@
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "firebase/auth";
-import { findOrCreateUser } from './users';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from 'firebase/auth';
 
-export const signUpNewUser = (email, password, displayName) => {
+/**
+ * Thin wrappers around Firebase Auth.
+ *
+ * Note: We no longer fetch the user's Firestore record here. The AuthContext
+ * subscribes to onAuthStateChanged and runs the offline-first backfill
+ * (services/backfill.ts) which is responsible for creating the Firestore user
+ * doc, merging friends, and pushing local games up. Keeping auth.js dumb
+ * means signIn/signUp succeed quickly without waiting on extra Firestore
+ * round-trips that might fail offline.
+ */
+
+export const signUpNewUser = async (email, password, displayName) => {
   const auth = getAuth();
-  return createUserWithEmailAndPassword(auth, email, password)
-    .then(async (userCredential) => {
-      // Signed up 
-      console.log("User signed up successfully:", userCredential);
-      const user = userCredential.user;
-      
-      // Update the user's profile with the display name
-      await updateProfile(user, { displayName: displayName });
-      console.log("User profile updated successfully");
-      
-      // Find or create user record in Firestore using userId
-      const userRecord = await findOrCreateUser({
-        userId: user.uid,
-        email: user.email,
-        name: displayName
-      });
-      
-      // Return user with additional data
-      return {
-        ...user,
-        name: displayName,
-        friends: userRecord.friends || []
-      };
-    })
-    .catch((error) => {
-      console.log("Error signing up user:", error);
-      // Propagate the error
-      throw error;
-    });
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+  try {
+    await updateProfile(user, { displayName });
+  } catch (e) {
+    console.log('[auth] updateProfile failed (non-fatal)', e);
+  }
+  return user;
 };
 
-export const signInUser = (email, password) => {
+export const signInUser = async (email, password) => {
   const auth = getAuth();
-  return signInWithEmailAndPassword(auth, email, password)
-    .then(async (userCredential) => {
-      // Signed in 
-      // console.log("User signed in successfully:", userCredential);
-      const user = userCredential.user;
-      
-      // Find or create user record in Firestore using userId
-      const userRecord = await findOrCreateUser({
-        userId: user.uid,
-        email: user.email,
-        name: user.displayName || user.email
-      });
-      
-      // Return user with additional data
-      return {
-        ...user,
-        name: user.displayName,
-        friends: userRecord.friends || []
-      };
-    })
-    .catch((error) => {
-      console.log("Error signing in user:", error);
-      // Propagate the error
-      throw error;
-    });
-}
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  return userCredential.user;
+};
 
 export const signOutUser = () => {
   const auth = getAuth();
-  return signOut(auth)
-    .then(() => {
-      // Sign-out successful.
-      console.log("User signed out successfully");
-    })
-    .catch((error) => {
-      console.log("Error signing out user:", error);
-      // Propagate the error
-      throw error;
-    });
-}
+  return signOut(auth);
+};
 
-export const getCurrentUser = () => {
-  const auth = getAuth();
-  return new Promise((resolve, reject) => {
+export const getCurrentUser = () =>
+  new Promise((resolve, reject) => {
+    const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        resolve(user);
-      } else {
-        reject(new Error('No user is currently signed in.'));
-      }
+      if (user) resolve(user);
+      else reject(new Error('No user is currently signed in.'));
     });
   });
-};
 
 export const isUserSignedIn = () => {
   const auth = getAuth();

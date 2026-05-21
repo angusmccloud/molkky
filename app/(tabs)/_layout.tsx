@@ -7,6 +7,7 @@ import { HapticTab } from '@/components/navigation/HapticTab';
 import TabBarBackground from '@/components/navigation/TabBarBackground';
 import Icon from '@/components/Icon';
 import AuthModal from '@/containers/AuthModal';
+import SyncStatusChip from '@/components/SyncStatusChip';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -18,9 +19,11 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor: theme.colors.primary,
         },
+        headerTintColor: theme.colors.onPrimary,
         headerRight: () => {
           return (
-            <View style={{marginRight: 10,}}>
+            <View style={{ marginRight: 10, flexDirection: 'row', alignItems: 'center' }}>
+              <SyncStatusChip />
               <AuthModal />
             </View>
           )
