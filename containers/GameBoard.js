@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, Platform } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Button from '@/components/Button';
 import Text from '@/components/Text';
+import IconButton from '@/components/IconButton';
 import PlayerStatus from './PlayerStatus';
+import AddPlayerModal from './AddPlayerModal';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import { getGame, updateGame, createGame } from '@/services/games';
 import useStyles from './GameBoardStyles';
+import typography from '@/constants/Typography';
 
 
 const GameBoard = (props) => {
   const [turnPosting, setTurnPosting] = useState(false);
   const [game, setGame] = useState(null);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const { gameId, updateGameStatus, onGameCreated } = props;
 
   const theme = useTheme();
   const styles = useStyles(theme);
+  // On iOS the tab bar is `position: 'absolute'` (see app/(tabs)/_layout.tsx)
+  // so screen content extends UNDER it. Add the tab bar's height as bottom
+  // padding so the action buttons sit above the bar. On Android the tab bar
+  // is in normal layout flow, so no extra padding is needed.
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
 
   if(!gameId) {
     return null;
@@ -28,16 +39,20 @@ const GameBoard = (props) => {
         if (fetchedGame) {
           setGame(fetchedGame);
         }
-        // console.log("FETCH THAT GAME", gameId);
       } catch (err) {
         console.log('error fetching game (Board)', err);
       }
     };
 
-    if(gameId && updateGameStatus) {
+    if (gameId) {
       fetchGame(gameId);
     }
-  }, [gameId, updateGameStatus]);
+    // Intentionally only re-fetch when gameId changes. After mount, this
+    // component owns its own game state — mutations update React state
+    // directly and write through to local storage. Refetching on parent
+    // re-renders would race with in-flight local writes and overwrite
+    // fresh state with stale.
+  }, [gameId]);
 
   if (!game) {
     return (
@@ -147,8 +162,8 @@ const GameBoard = (props) => {
           gameStatus: finalWinningTurn ? 'finished' : game.gameStatus,
           winningPlayerId: finalWinningTurn ? finalWinningPlayerId : game.winningPlayerId ? game.winningPlayerId : null,
         };
-        updateGame(game.id, newGame);
         setGame(newGame);
+        await updateGame(game.id, newGame);
         if (finalWinningTurn) {
           updateGameStatus(newGame);
         }
@@ -215,11 +230,11 @@ const GameBoard = (props) => {
           winningPlayerId: null,
         }
         setGame(newGame);
-        updateGame(game.id, newGame);
-        setTurnPosting(false);
+        await updateGame(game.id, newGame);
         if (winningPlayerId) {
           updateGameStatus('inProgress');
         }
+        setTurnPosting(false);
       } catch (err) {
         console.log('error posting Undo Turn', err);
         setTurnPosting(false);
@@ -284,7 +299,7 @@ const GameBoard = (props) => {
           winningPlayerId: winByElimination ? winByElimination : game.winningPlayerId,
         };
         setGame(newGame);
-        updateGame(game.id, newGame);
+        await updateGame(game.id, newGame);
         if (winByElimination) {
           updateGameStatus(newGame);
         }
@@ -327,6 +342,48 @@ const GameBoard = (props) => {
     }
   };
 
+  const addPlayerToGame = ({ newPlayer, insertAfterPlayerId, startingScore }) => {
+    if (!game || gameStatus !== 'inProgress') return;
+
+    // Build the new players array: splice in after the chosen player, or push to end.
+    let newPlayers;
+    if (insertAfterPlayerId) {
+      const idx = players.findIndex((p) => p.id === insertAfterPlayerId);
+      if (idx === -1) {
+        newPlayers = [...players, newPlayer];
+      } else {
+        newPlayers = [
+          ...players.slice(0, idx + 1),
+          newPlayer,
+          ...players.slice(idx + 1),
+        ];
+      }
+    } else {
+      newPlayers = [...players, newPlayer];
+    }
+
+    const newScores = [
+      ...scores,
+      {
+        playerId: newPlayer.id,
+        score: startingScore || 0,
+        timesOver: 0,
+        misses: 0,
+        isOut: false,
+        isWinner: false,
+      },
+    ];
+
+    const newGame = {
+      ...game,
+      players: newPlayers,
+      scores: newScores,
+      updatedAt: new Date().toISOString(),
+    };
+    setGame(newGame);
+    updateGame(game.id, newGame);
+  };
+
   const playersInOrder = [];
   const endOfOrder = [];
   let foundCurrentPlayer = false;
@@ -344,14 +401,37 @@ const GameBoard = (props) => {
   const currentPlayerEliminated = scores.find(s => s.playerId === whichPlayersTurn)?.isOut;
 
   return (
-    <View style={styles.pageWrapper}>
+    <View style={[styles.pageWrapper, { paddingBottom: bottomInset }]}>
       <ScrollView style={styles.scrollablePageWrapper} keyboardShouldPersistTaps='always'>
         {playersInOrder.map((player, index) => {
           return (
             <PlayerStatus key={player.id} player={player} winningPlayerId={winningPlayerId} whichPlayersTurn={whichPlayersTurn} gameStatus={gameStatus} scores={scores} turns={turns} updatedAt={updatedAt} rules={rules} />
           )
         })}
+        {gameStatus === 'inProgress' && (
+          <View style={styles.addPlayerRow}>
+            <IconButton
+              icon="account-plus"
+              mode="outlined"
+              iconColor={theme.colors.primary}
+              size={typography.fontSizeL}
+              onPress={() => setShowAddPlayerModal(true)}
+              accessibilityLabel="Add player to game"
+            />
+            <Text size='S' style={styles.addPlayerLabel}>
+              Add Player
+            </Text>
+          </View>
+        )}
       </ScrollView>
+      <AddPlayerModal
+        showModal={showAddPlayerModal}
+        closeModal={() => setShowAddPlayerModal(false)}
+        players={players}
+        whichPlayersTurn={whichPlayersTurn}
+        winningScore={rules.winningScore}
+        onAddPlayer={addPlayerToGame}
+      />
       <View style={styles.buttonSectionWrapper}>
         {gameStatus === 'inProgress' ? (
           <>

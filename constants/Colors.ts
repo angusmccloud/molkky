@@ -1,20 +1,32 @@
 //////// Custom Below, more cleanup to do....
 import { MD3DarkTheme as PaperDarkTheme, MD3LightTheme as PaperDefaultTheme } from 'react-native-paper';
 
+// Slalom Brand Colors
+export const darkNavy = '#09091c';
+export const gray = '#8C8C8C';
+
+
 const primaryGreen = '#0A3314';
-const primaryBlue = '#0c62fb';
-const grayMedium = '#92A19F';
-const grayDark = '#4C656E';
+const greensDark = primaryGreen;
+const greensMediumDark = '#325937';
+const greensMedium = '#59825D';
+const greensMediumLight = '#83AE87';
+const greensLight = '#AFDBB2';
+const greensSuperLight = '#F8FFF8';
+const lightGreenGray = '#A0AfA0';
+const darkGreenGray = '#6C7B6D';
+const primaryBlue = '#00627C';
+const bluesDark = primaryBlue;
+const bluesMedium = '#00627C';
+const bluesLight = '#97AFBA';
 const white = '#ffffff';
 const black = '#000000';
 // const red = '#FF0000';
 const red = 'rgba(179, 38, 30, 1)';
-// const error = '#b55464';
+const error = '#b55464';
+const grayMedium = '#92A19F';
+const grayDark = '#4C656E';
 
-// Slalom Brand Colors
-
-export const darkNavy = '#09091c';
-export const gray = '#8C8C8C';
 
 
 // Paper Theming Info:
@@ -31,20 +43,20 @@ export const lightTheme = {
   colors: {
     ...PaperDefaultTheme.colors,
     // Add all our colors here
-    textDefault: primaryBlue,
+    textDefault: primaryGreen,
     iconDefault: grayDark,
     background: white,
-    onBackground: primaryBlue,
-    modalBackground: primaryBlue,
+    onBackground: primaryGreen,
+    modalBackground: primaryGreen,
     onModalBackground: white,
-    modalHeader: primaryBlue,
+    modalHeader: primaryGreen,
     onModalHeader: white,
-    primary: primaryBlue,
+    primary: primaryGreen,
     onPrimary: white,
-    primaryContainer: primaryBlue, // Used by AnimatedFAB
+    primaryContainer: primaryGreen, // Used by AnimatedFAB
     onPrimaryContainer: white, // Used by AnimatedFAB
     disabled: grayMedium,
-    onDisabled: primaryBlue,
+    onDisabled: primaryGreen,
     error: red,
     onError: white,
     outline: grayDark,
@@ -68,16 +80,16 @@ export const darkTheme = {
     iconDefault: white,
     background: black,
     onBackground: white,
-    modalBackground: primaryBlue,
+    modalBackground: primaryGreen,
     onModalBackground: white,
-    modalHeader: primaryBlue,
+    modalHeader: primaryGreen,
     onModalHeader: white,
-    primary: primaryBlue,
+    primary: primaryGreen,
     onPrimary: white,
-    primaryContainer: primaryBlue, // Used by AnimatedFAB
+    primaryContainer: primaryGreen, // Used by AnimatedFAB
     onPrimaryContainer: white, // Used by AnimatedFAB
     disabled: grayMedium,
-    onDisabled: primaryBlue,
+    onDisabled: primaryGreen,
     error: red,
     onError: white,
     outline: grayMedium,

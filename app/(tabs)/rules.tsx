@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Image, Pressable } from 'react-native';
+import { View, ScrollView, Image, Pressable, Platform } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Text, { TextSizes } from '@/components/Text';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
@@ -17,10 +18,12 @@ export default function RulesScreen() {
   const dimensions = useDeviceDimensions();
   const { width, height } = dimensions;
   const [modalVisible, setModalVisible] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
 
   return (
     <PageWrapper>
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset }}>
         <View style={{ padding: 10, flexDirection: 'row' }}>
           <View style={{ flex: 2 }}>
             <Text size={TextSizes.XL} bold>

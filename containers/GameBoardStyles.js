@@ -8,6 +8,9 @@ const useStyles = (theme) => {
   const { width, height } = useDeviceDimensions();
   return StyleSheet.create({
     ...reusableStyles,
+    scrollablePageWrapper: {
+      flex: 1,
+    },
     playerWrapper: {
       // flexDirection: 'column',
       width: width - 20 - (typography.fontSizeXL + typography.fontSizeS) * 1.5,
@@ -71,6 +74,17 @@ const useStyles = (theme) => {
       width: '50%',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    addPlayerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingTop: 5,
+      paddingBottom: 10,
+    },
+    addPlayerLabel: {
+      color: theme.colors.primary,
+      marginLeft: 4,
     },
   });
 };

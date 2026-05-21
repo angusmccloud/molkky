@@ -179,7 +179,7 @@ const AuthModal = () => {
           ) : (
             <Icon
               name="user"
-              color={theme.colors.onBackground}
+              color={theme.colors.onPrimary}
               iconSize={typography.fontSizeXXL}
             />
           )}

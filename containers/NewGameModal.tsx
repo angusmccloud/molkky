@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import Animated, { FadeOutDown, FadeInUp, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeOutDown, FadeInUp } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from "react-native-paper";
-import uuid from 'react-native-uuid'; 
+import uuid from 'react-native-uuid';
 import { createGame } from '@/services/games';
 import { AuthContext } from '@/contexts/AuthContext';
 import TextInput from '@/components/TextInput';
@@ -12,12 +13,14 @@ import Switch from '@/components/Switch';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import useReusableStyles from '@/hooks/useReusableStyles';
 import Modal from '@/components/Modal';
-import Chip from '@/components/Chip';
 import Avatar from '@/components/Avatar';
-import Icon from '@/components/Icon';
 import MultiSelectInput from '@/components/MultiSelectInput';
 import typography from '@/constants/Typography';
 import IconButton from "@/components/IconButton";
+import DraggableList, {
+  DraggableListRenderItemInfo,
+  GestureDetector,
+} from '@/components/DraggableList';
 
 // --- Types for state ---
 type Player = { id: string; name: string };
@@ -38,10 +41,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   if (!authContext) {
     throw new Error('AuthContext must be used within an AuthProvider');
   }
-  const { user, addFriends } = authContext;
-  
-  // Get friends from user context
-  const friends = user?.friends || [];
+  const { effectiveUid, friends, addFriends } = authContext;
 
   const theme = useTheme();
   const styles = useStyles(theme);
@@ -64,11 +64,18 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
 
   // When MultiSelectInput changes, update players array to include selected friends (preserving custom players and order)
   const handleSetFriendIds = (newIds: string[]) => {
-    const customPlayers = players.filter(
-      p => !friends.some(f => f.id === p.id)
+    // Keep custom players in their existing positions, and keep already-selected friends in place too.
+    // Append newly-added friends at the end. Remove friends that were deselected.
+    const newIdSet = new Set(newIds);
+    // Filter: keep custom players + still-selected friends in current order
+    const retained = players.filter(
+      p => !friends.some(f => f.id === p.id) || newIdSet.has(p.id)
     );
-    const selectedFriends = friends.filter(f => newIds.includes(f.id));
-    setPlayers([...selectedFriends, ...customPlayers]);
+    const existingIds = new Set(retained.map(p => p.id));
+    const newlyAddedFriends = friends.filter(
+      f => newIdSet.has(f.id) && !existingIds.has(f.id)
+    );
+    setPlayers([...retained, ...newlyAddedFriends]);
   };
 
   // Add new custom player
@@ -85,13 +92,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
 
   // Remove player (friend or custom)
   const removePlayer = (id: string) => {
-    // If it's a friend, remove from players
-    if (friends.some(f => f.id === id)) {
-      setPlayers(players.filter(p => p.id !== id));
-    } else {
-      // Remove custom player directly
-      setPlayers(players.filter(p => p.id !== id));
-    }
+    setPlayers(prev => prev.filter(p => p.id !== id));
   };
 
   const startGame = async () => {
@@ -103,14 +104,14 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
       const newFriends = players.filter(
         player => !existingFriendIds.includes(player.id) && friends.every(f => f.id !== player.id)
       );
-      
+
       // Add new players as friends if any (async, no await)
       if (newFriends.length > 0) {
         addFriends(newFriends);
       }
 
       const gameData = {
-        uid: user!.uid,
+        uid: effectiveUid,
         players: players.map(player => ({
           id: player.id,
           name: player.name,
@@ -169,8 +170,71 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setPlayers(shuffled);
-    // No need to update selectedFriendIds, it's derived from players
   };
+
+  // Stable keyExtractor for DraggableList
+  const keyExtractor = useCallback((item: Player) => item.id, []);
+
+  // Render each draggable player row
+  const renderPlayerRow = useCallback(
+    ({ item, drag, isActive }: DraggableListRenderItemInfo<Player>) => {
+      return (
+        <Animated.View
+          entering={FadeInUp.duration(200)}
+          exiting={FadeOutDown.duration(200)}
+          style={styles.playerRowOuter}
+        >
+          <View
+            style={[
+              styles.playerRow,
+              isActive && styles.playerRowActive,
+            ]}
+          >
+            <View style={styles.playerRowLeft}>
+              <Avatar
+                name={item.name}
+                size={typography.fontSizeS * 2.4}
+                textSize={TextSizes.S}
+                variant="circle"
+                absolute={false}
+              />
+              <Text
+                style={styles.playerRowName}
+                color={theme.colors.onBackground}
+                size={TextSizes.M}
+              >
+                {item.name}
+              </Text>
+            </View>
+            <View style={styles.playerRowRight}>
+              <GestureDetector gesture={drag}>
+                <View
+                  style={styles.dragHandle}
+                  hitSlop={8}
+                  accessibilityLabel={`Drag handle for ${item.name}`}
+                  accessibilityHint="Press and hold, then drag to reorder"
+                >
+                  <MaterialCommunityIcons
+                    name="drag-horizontal-variant"
+                    size={typography.fontSizeXL}
+                    color={theme.colors.onBackground}
+                  />
+                </View>
+              </GestureDetector>
+              <IconButton
+                icon="close"
+                size={typography.fontSizeM}
+                onPress={() => removePlayer(item.id)}
+                disabled={creatingGame}
+                accessibilityLabel={`Remove ${item.name}`}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      );
+    },
+    [styles, theme, creatingGame]
+  );
 
   return (
     <>
@@ -204,8 +268,11 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               </Button>
             </View>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" style={{padding: 5}}>
-            <View style={{flexDirection: 'row', alignItems: 'center', padding: 0}}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.listContent}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 0 }}>
               <IconButton
                 icon="shuffle"
                 mode="outlined"
@@ -213,14 +280,15 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 size={typography.fontSizeXXL}
                 onPress={shuffleOrder}
                 disabled={players.length < 2 || creatingGame}
-                style={{marginLeft: 0}}
+                style={{ marginLeft: 0 }}
               />
-              <View style={{flex: 1, marginBottom: 5}}>
+              <View style={{ flex: 1, marginBottom: 5 }}>
                 <MultiSelectInput
                   placeholder="Select Friends"
                   label="Select Friends"
                   focusPlaceholder='...'
                   data={friends
+                    .slice()
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map(f => ({
                       label: f.name,
@@ -233,11 +301,11 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                   values={selectedFriendIds}
                   setValues={handleSetFriendIds as (values: string[]) => void}
                   valueField="value"
-                  renderItem={(item) => {
+                  renderItem={(item: { label: string; value: string; disabled?: boolean }) => {
                     const isSelected = selectedFriendIds.includes(item.value);
                     // Use color constants directly since theme.colors typing is incomplete
-                    const disabledBg = theme.colors.disabled;
-                    const onDisabled = theme.colors.onDisabled;
+                    const disabledBg = (theme.colors as any).disabled;
+                    const onDisabled = (theme.colors as any).onDisabled;
                     return (
                       <View style={{
                         paddingLeft: 5,
@@ -245,7 +313,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                         flexDirection: 'row',
                         alignItems: 'center',
                       }}>
-                        <Avatar 
+                        <Avatar
                           name={item.label}
                           size={typography.fontSizeXS * 2}
                           textSize={TextSizes.S}
@@ -262,37 +330,23 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 />
               </View>
             </View>
-            {/* Chips for all players */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 3 }}>
-              {players.map(player => (
-                <Animated.View
-                  key={player.id}
-                  entering={FadeInUp.duration(200).delay(100)}
-                  exiting={FadeOutDown.duration(200)}
-                  layout={LinearTransition}
-                >
-                  <Chip
-                    key={player.id}
-                    icon={() => (
-                      <Avatar 
-                        name={player.name}
-                        size={typography.fontSizeS * 2}
-                        textSize={TextSizes.S}
-                        variant="circle"
-                        absolute={false}
-                      />
-                    )}
-                    closeIcon={() => (
-                      <Icon size={typography.fontSizeS * 2} name="close" />
-                    )}
-                    onClose={() => removePlayer(player.id)}
-                    style={{ marginRight: 6, marginBottom: 6 }}
-                  >
-                    {player.name}
-                  </Chip>
-                </Animated.View>
-              ))}
-            </View>
+            {players.length > 0 && (
+              <Text
+                size={TextSizes.XS}
+                color={theme.colors.onBackground}
+                style={styles.reorderHint}
+              >
+                Press and hold the handle to reorder players
+              </Text>
+            )}
+            {players.length > 0 && (
+              <DraggableList
+                data={players}
+                keyExtractor={keyExtractor}
+                onReorder={setPlayers}
+                renderItem={renderPlayerRow}
+              />
+            )}
             {/* Add New Player input */}
             <View style={styles.addPlayerContainer}>
               <View style={styles.addPlayerInputContainer}>
@@ -332,10 +386,10 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               />
             </View>
             <View style={styles.textInputWrapper}>
-              <TextInput 
-                value={winningScore} 
+              <TextInput
+                value={winningScore}
                 onChangeText={setWinningScore}
-                label="Target Score" 
+                label="Target Score"
                 keyboardType="number-pad"
                 placeholder="Points to Win"
                 clearButtonMode="while-editing"
@@ -343,7 +397,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               />
             </View>
             <View style={styles.textInputWrapper}>
-              <TextInput 
+              <TextInput
                 label='Fall-Back-To Points'
                 value={goBackToScore}
                 onChangeText={setGoBackToScore}
@@ -370,12 +424,57 @@ const useStyles = (theme: any) => {
   const reusableStyles = useReusableStyles(theme);
   return StyleSheet.create({
     ...reusableStyles,
+    listContent: {
+      padding: 5,
+      paddingBottom: 20,
+    },
+    playerRowOuter: {
+      flex: 1,
+    },
     playerRow: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 10,
-      marginTop: 5,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+      marginVertical: 3,
+      backgroundColor: theme.colors.background,
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.primary,
+    },
+    playerRowActive: {
+      // Visual feedback while dragging
+      backgroundColor: theme.colors.elevation?.level2 ?? theme.colors.background,
+      borderColor: theme.colors.primary,
+    },
+    playerRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 1,
+      flex: 1,
+    },
+    playerRowName: {
+      marginLeft: 10,
+      flexShrink: 1,
+    },
+    playerRowRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dragHandle: {
+      paddingHorizontal: 6,
+      paddingVertical: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    reorderHint: {
+      marginTop: 4,
+      marginBottom: 2,
+      marginLeft: 4,
+      opacity: 0.7,
+      fontStyle: 'italic',
     },
     error: {
       marginTop: 16,
@@ -394,7 +493,7 @@ const useStyles = (theme: any) => {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 6,
-      marginTop: -6,
+      marginTop: 6,
     },
     addPlayerInputContainer: {
       flex: 1,
