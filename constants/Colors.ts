@@ -2,25 +2,14 @@
 import { MD3DarkTheme as PaperDarkTheme, MD3LightTheme as PaperDefaultTheme } from 'react-native-paper';
 
 const primaryGreen = '#0A3314';
-const greensDark = primaryGreen;
-const greensMediumDark = '#325937';
-const greensMedium = '#59825D';
-const greensMediumLight = '#83AE87';
-const greensLight = '#AFDBB2';
-const greensSuperLight = '#F8FFF8';
-const lightGreenGray = '#A0AfA0';
-const darkGreenGray = '#6C7B6D';
 const primaryBlue = '#0c62fb';
-const bluesDark = primaryBlue;
-const bluesMedium = '#00627C';
-const bluesLight = '#97AFBA';
 const grayMedium = '#92A19F';
 const grayDark = '#4C656E';
 const white = '#ffffff';
 const black = '#000000';
 // const red = '#FF0000';
 const red = 'rgba(179, 38, 30, 1)';
-const error = '#b55464';
+// const error = '#b55464';
 
 // Slalom Brand Colors
 
@@ -54,7 +43,7 @@ export const lightTheme = {
     onPrimary: white,
     primaryContainer: primaryBlue, // Used by AnimatedFAB
     onPrimaryContainer: white, // Used by AnimatedFAB
-    disabled: 'grayMedium',
+    disabled: grayMedium,
     onDisabled: primaryBlue,
     error: red,
     onError: white,

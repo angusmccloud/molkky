@@ -167,7 +167,7 @@ export default function HomeScreen() {
         <View style={{ alignItems: 'center', padding: 20, width: '100%' }}>
           <View style={{ paddingTop: 20 }}>
             <Button onPress={() => setShowNewGameModal(true)}>
-              Start Your First Game Now
+              Start a New Game
             </Button>
           </View>
         </View>
