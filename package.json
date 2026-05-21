@@ -3,11 +3,11 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "tunnel": "expo start --tunnel",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint"
@@ -42,7 +42,7 @@
     "jest-expo": "~53.0.7",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-native": "0.79.4",
+    "react-native": "0.79.5",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-modal": "^14.0.0-rc.1",
@@ -57,5 +57,8 @@
     "shuffle-seed": "^1.1.6",
     "typescript": "^5.8.3"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  }
 }
