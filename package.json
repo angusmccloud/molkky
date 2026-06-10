@@ -1,14 +1,16 @@
 {
   "name": "molkky",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "scripts": {
     "start": "expo start --dev-client",
     "tunnel": "expo start --tunnel",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:device": "bash -lc 'nvm use 22 >/dev/null && npx expo run:ios --device 00008140-001E35912252801C'",
     "web": "expo start --web",
+    "postinstall": "patch-package",
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
@@ -51,6 +53,7 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "5.8.0",
     "react-native-screens": "4.25.1",
+    "react-native-share": "^12.3.1",
     "react-native-svg": "15.15.5",
     "react-native-uuid": "^2.0.4",
     "react-native-web": "^0.21.0",
@@ -61,7 +64,11 @@
   },
   "private": true,
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "babel-plugin-transform-remove-console": "^6.9.4",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~55.0.1",
+    "patch-package": "^8.0.1"
   },
   "expo": {
     "install": {

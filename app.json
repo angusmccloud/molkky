@@ -5,12 +5,12 @@
     "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "molkky",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connortyrrell.molkky",
-      "buildNumber": "2.0.1",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -19,11 +19,11 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0c62fb"
+        "backgroundColor": "#0A3314"
       },
       "package": "com.connortyrrell.molkky",
       "softwareKeyboardLayoutMode": "pan",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "bundler": "metro",

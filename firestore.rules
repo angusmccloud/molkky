@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// Mölkky Scores — Firestore security rules.
+//
+// Data model (see services/localStore.ts + services/cloudGames.ts):
+//   games/{gameId}  — one document per game. Owned by `uid`. The client uses
+//                     the local game id as the document id (setDoc, merge:true).
+//   users/{userId}  — one document per signed-in user. Doc id IS the auth uid.
+//
+// Core invariants:
+//   * A user may only read/write games they own (resource.data.uid == auth.uid).
+//   * A user may only read/write their own user document (userId == auth.uid).
+//   * Nobody may LIST the users collection (no email harvesting).
+//   * Writes are shape/size validated so a compromised client can't store
+//     arbitrary or unbounded data.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // ---- games ------------------------------------------------------------
+
+    function gameFieldsValid(d) {
+      return d.uid is string
+        && d.players is list && d.players.size() > 0 && d.players.size() <= 64
+        && d.scores is list && d.scores.size() <= 64
+        // Mölkky games are short; cap turns well above any real game to bound
+        // the document size (Firestore hard limit is 1 MiB / document).
+        && d.turns is list && d.turns.size() <= 5000
+        && d.gameStatus in ['inProgress', 'finished', 'abandoned']
+        // int OR float: the JS SDK may serialize whole numbers either way.
+        && (d.gameRound is int || d.gameRound is float)
+        && d.whichPlayersTurn is string
+        && d.rules is map
+        && d.createdAt is string
+        && d.updatedAt is string;
+    }
+
+    match /games/{gameId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      // On create the new doc must be owned by the caller.
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && gameFieldsValid(request.resource.data);
+
+      // On update the caller must already own it AND may not transfer ownership.
+      allow update: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && gameFieldsValid(request.resource.data);
+
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---- users ------------------------------------------------------------
+
+    function userFieldsValid(d) {
+      return d.email is string
+        && d.name is string
+        && d.friends is list && d.friends.size() <= 1000
+        && d.createdAt is string;
+    }
+
+    match /users/{userId} {
+      // Read/write only your own user document. No list/query of the collection.
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == userId
+        && userFieldsValid(request.resource.data);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ---- everything else is denied ---------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

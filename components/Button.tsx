@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Pressable } from "react-native";
+import { Pressable, ViewStyle } from "react-native";
 import {
   Button as PaperButton,
   ButtonProps as PaperButtonProps,
@@ -57,8 +57,8 @@ const Button = (props: ButtonProps) => {
           borderRadius: 100,
           alignItems: "center",
           justifyContent: "center",
-        }}
-        {...restOfProps}
+        } as ViewStyle}
+        {...(restOfProps as React.ComponentProps<typeof Pressable>)}
       >
         <Text color={textColor} size={textSize} bold={textBold}>{props.children}</Text>
       </Pressable>

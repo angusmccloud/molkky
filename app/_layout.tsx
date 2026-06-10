@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { lightTheme, darkTheme } from '@/constants/Colors';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -33,17 +34,25 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={colorScheme === 'dark' ? darkTheme : lightTheme}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <AuthProvider>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </AuthProvider>
-        </ThemeProvider>
-      </PaperProvider>
+      {/*
+        ErrorBoundary sits inside GestureHandlerRootView (so its fallback can
+        render) but OUTSIDE the providers, so a render crash in the theme,
+        Paper, or AuthProvider is still caught instead of white-screening.
+        Its fallback intentionally uses plain primitives, not these providers.
+      */}
+      <ErrorBoundary>
+        <PaperProvider theme={colorScheme === 'dark' ? darkTheme : lightTheme}>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <AuthProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </AuthProvider>
+          </ThemeProvider>
+        </PaperProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

@@ -1,11 +1,9 @@
 import {
-  collection,
   doc,
   setDoc,
   updateDoc,
   deleteDoc,
   getDoc,
-  getDocs,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Friend } from '@/services/localStore';
@@ -62,11 +60,6 @@ export const cloudGetUser = async (userId: string): Promise<CloudUserRecord | nu
   const snap = await getDoc(userRef);
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data() as Omit<CloudUserRecord, 'id'>) };
-};
-
-export const cloudGetAllUsers = async (): Promise<CloudUserRecord[]> => {
-  const snap = await getDocs(collection(db, 'users'));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CloudUserRecord, 'id'>) }));
 };
 
 export const cloudDeleteUser = async (userId: string): Promise<void> => {

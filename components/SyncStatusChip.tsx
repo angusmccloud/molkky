@@ -6,28 +6,38 @@ import { AuthContext } from '@/contexts/AuthContext';
 
 /**
  * Small status dot + label that summarises sync state:
- *   - gray: guest mode (not signed in)
+ *   - gray:  guest mode (not signed in)
  *   - green: signed in, online, queue empty
- *   - yellow: signed in, pending ops in queue (or offline)
+ *   - amber: signed in, pending ops in queue (or offline)
+ *   - red:   signed in, some ops are stuck and need attention
  */
 const SyncStatusChip: React.FC = () => {
   const theme = useTheme();
+  const colors = theme.colors as typeof theme.colors & {
+    syncSynced: string;
+    syncPending: string;
+    syncError: string;
+    syncGuest: string;
+  };
   const ctx = useContext(AuthContext);
   if (!ctx) return null;
 
-  const { user, pendingSyncCount, cloudSyncEnabled } = ctx;
+  const { user, pendingSyncCount, syncFailedCount, cloudSyncEnabled } = ctx;
 
-  let color = '#888';
+  let color = colors.syncGuest;
   let label = 'Guest';
   if (user) {
-    if (cloudSyncEnabled) {
-      color = '#2e7d32'; // green
+    if (syncFailedCount > 0) {
+      color = colors.syncError;
+      label = `Sync issue (${syncFailedCount})`;
+    } else if (cloudSyncEnabled) {
+      color = colors.syncSynced;
       label = 'Synced';
     } else if (pendingSyncCount > 0) {
-      color = '#f9a825'; // yellow
+      color = colors.syncPending;
       label = `Syncing (${pendingSyncCount})`;
     } else {
-      color = '#f9a825';
+      color = colors.syncPending;
       label = 'Offline';
     }
   }

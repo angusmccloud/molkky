@@ -57,3 +57,10 @@ export const cloudGetAllUserGames = async (uid: string): Promise<Game[]> => {
   });
   return games;
 };
+
+/** Delete every cloud game owned by `uid`. Used during account deletion. */
+export const cloudDeleteAllUserGames = async (uid: string): Promise<void> => {
+  const q = query(collection(db, 'games'), where('uid', '==', uid));
+  const snap = await getDocs(q);
+  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+};

@@ -2,6 +2,7 @@ import React, {
   ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -10,7 +11,6 @@ import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
-  LinearTransition,
   runOnJS,
   SharedValue,
   useAnimatedStyle,
@@ -39,10 +39,12 @@ export type DraggableListProps<T> = {
 
 /**
  * Drag-to-reorder vertical list. Rows live in normal flex column flow;
- * resting layout shifts animate via `LinearTransition`. The active row
- * is dragged via translateY (layout transition disabled for it so it
- * stays under the finger). Reorders fire mid-drag — the layout
- * animation handles the visual shuffle.
+ * resting layout shifts animate via per-row `withTiming` on translateY:
+ * when a row's resting Y changes, it is pre-positioned at its OLD spot
+ * via translateY and animated back to 0. The active row is dragged via
+ * translateY (slide animation skipped for it so it stays under the
+ * finger). Reorders fire mid-drag — non-active rows slide via the
+ * per-row timing animation.
  *
  * Row-height: B2 "per-row measured" — each row's height is tracked in a
  * shared-value map keyed by item id, updated from each row's onLayout.
@@ -51,15 +53,16 @@ export type DraggableListProps<T> = {
  * (including 2+ line wrapping names) reorder accurately.
  *
  * Data structures:
- *   heightsSV: SharedValue<Record<string, number>>  // id -> measured px
- *   idsSV:     SharedValue<string[]>                // current data order
- *   translateYsRef: Map<id, SharedValue<number>>    // per-row active offset
+ *   heightsRef: Ref<Record<string, number>>   // id -> measured px
+ *   idsRef:     Ref<string[]>                  // current data order
+ *   translateYsRef: Map<id, SharedValue<number>>  // per-row active offset
  *
- * Worklets read heightsSV + idsSV to compute the cumulative offset of any
- * index. The list is small (≤10 rows in practice), so re-computing
- * offsets per-update is cheap. We avoid storing a derived offsets array
- * on the UI thread — recomputing from the two source-of-truth shared
- * values keeps state coherent across mid-drag commits.
+ * Drag math runs on the JS thread (gesture worklets only `runOnJS` into the
+ * handlers), so heights/ids live in plain refs rather than shared values.
+ * The cumulative offset of any index is recomputed per-update from these
+ * source-of-truth refs; the list is small (≤10 rows in practice), so this is
+ * cheap and keeps state coherent across mid-drag commits. Only the per-row
+ * translateY — read inside a `useAnimatedStyle` worklet — is a shared value.
  */
 
 const FALLBACK_ROW_HEIGHT = 56;
@@ -78,13 +81,16 @@ function DraggableListInner<T>({
   style,
 }: DraggableListProps<T>) {
   // Per-id measured heights (px). Updated from each row's onLayout via
-  // a stable JS callback. Worklets read this for cumulative-offset math.
-  const heightsSV = useSharedValue<Record<string, number>>({});
+  // a stable JS callback. Read only on the JS thread (effects, drag
+  // callbacks, and the resting-offset useMemo) — never inside a worklet —
+  // so a plain ref is correct here. (A shared value would trip Reanimated's
+  // strict-mode "reading `.value` during render" warning from the useMemo.)
+  const heightsRef = useRef<Record<string, number>>({});
 
   // Current data order as a list of ids. Updated in a useEffect on every
-  // `data` change. Worklets read this to walk the list in render order
-  // without crossing the JS/UI boundary.
-  const idsSV = useSharedValue<string[]>([]);
+  // `data` change. Read only on the JS thread by the drag callbacks, so a
+  // plain ref suffices.
+  const idsRef = useRef<string[]>([]);
 
   // Active item id. State (not ref) so the active row can opt out of the
   // layout transition on re-render. Only flips on drag-start / drag-end.
@@ -109,35 +115,34 @@ function DraggableListInner<T>({
   // gesture's raw translationY in every update.
   const dragCorrectionRef = useRef<number>(0);
 
-  // Keep idsSV in sync with `data` order, and prune heightsSV entries
+  // Keep idsRef in sync with `data` order, and prune heightsRef entries
   // for ids that are no longer in `data`.
   useEffect(() => {
     const ids = data.map((item, i) => keyExtractor(item, i));
-    idsSV.value = ids;
+    idsRef.current = ids;
 
-    // Prune removed entries. Done in a single object replacement so the
-    // shared value sees one coherent update.
+    // Prune removed entries.
     const present = new Set(ids);
-    const current = heightsSV.value;
+    const current = heightsRef.current;
     let changed = false;
     const next: Record<string, number> = {};
     for (const key of Object.keys(current)) {
       if (present.has(key)) next[key] = current[key];
       else changed = true;
     }
-    if (changed) heightsSV.value = next;
-  }, [data, keyExtractor, idsSV, heightsSV]);
+    if (changed) heightsRef.current = next;
+  }, [data, keyExtractor]);
 
   // Stable height-update callback. Each row calls this on onLayout.
   // No-ops if the height is unchanged within 0.5px (sub-pixel jitter).
   const updateHeight = useCallback(
     (id: string, height: number) => {
       if (height <= 0) return;
-      const current = heightsSV.value[id];
+      const current = heightsRef.current[id];
       if (current !== undefined && Math.abs(current - height) < 0.5) return;
-      heightsSV.value = { ...heightsSV.value, [id]: height };
+      heightsRef.current = { ...heightsRef.current, [id]: height };
     },
-    [heightsSV]
+    []
   );
 
   // --- Stable JS handlers (invoked from the gesture worklet via runOnJS).
@@ -162,7 +167,7 @@ function DraggableListInner<T>({
   // correction.
   const computeLayout = useCallback(
     (ids: string[]): { offsets: number[]; heights: number[] } => {
-      const heights = heightsSV.value;
+      const heights = heightsRef.current;
       const out = { offsets: new Array<number>(ids.length), heights: new Array<number>(ids.length) };
       let acc = 0;
       for (let i = 0; i < ids.length; i++) {
@@ -173,7 +178,7 @@ function DraggableListInner<T>({
       }
       return out;
     },
-    [heightsSV]
+    []
   );
 
   const handleDragUpdate = useCallback(
@@ -185,7 +190,7 @@ function DraggableListInner<T>({
 
       // Snapshot of current order (ids) — captures the array AS IT IS
       // right now, including any prior mid-drag commits.
-      const ids = idsSV.value;
+      const ids = idsRef.current;
       const count = ids.length;
       if (count === 0 || committed >= count) return;
 
@@ -240,7 +245,7 @@ function DraggableListInner<T>({
       const now = Date.now();
       if (now - lastCommitAtRef.current < COMMIT_THROTTLE_MS) return;
 
-      // Build the next array order. idsSV is the authoritative order;
+      // Build the next array order. idsRef is the authoritative order;
       // we follow it and look up items by id from dataRef (which may
       // briefly lag between commits and the parent's re-render).
       const dataById = new Map<string, T>();
@@ -267,20 +272,27 @@ function DraggableListInner<T>({
       //   → newEffectiveTranslation = oldEffectiveTranslation - delta
       //   → newCorrection           = correction - delta
       //   (so that translationY + newCorrection == newEffectiveTranslation)
+      //
+      // We update dragCorrection (read by the next finger update) here, but
+      // deliberately do NOT touch tY.value yet. The flex relayout from the
+      // setPlayers below lands a frame later, so writing the corrected tY now
+      // would apply it against the OLD slot for one frame — the dragged row
+      // flashes back toward its origin and snaps back. Instead the active
+      // row's layout effect applies the −delta in the SAME commit as the
+      // relayout (see DraggableRow), keeping it pinned under the finger.
       const { offsets: newOffsets } = computeLayout(nextIds);
       const newRestingY = newOffsets[projected];
       const delta = newRestingY - restingY;
 
       dragCorrectionRef.current = correction - delta;
-      if (tY) tY.value = effectiveTranslation - delta;
 
       committedIndexRef.current = projected;
       lastCommitAtRef.current = now;
-      idsSV.value = nextIds;
+      idsRef.current = nextIds;
 
       onReorderRef.current(next);
     },
-    [computeLayout, idsSV]
+    [computeLayout]
   );
 
   const handleDragFinalize = useCallback((id: string) => {
@@ -363,6 +375,24 @@ function DraggableListInner<T>({
     dispatchFinalize,
   ]);
 
+  // Compute each row's resting Y offset for the current order. Rows use
+  // this to detect index/position changes and slide smoothly between
+  // old and new positions on reorder (see DraggableRow).
+  const restingYs = useMemo(() => {
+    const ids = data.map((item, i) => keyExtractor(item, i));
+    const heights = heightsRef.current;
+    const out = new Array<number>(ids.length);
+    let acc = 0;
+    for (let i = 0; i < ids.length; i++) {
+      out[i] = acc;
+      acc += heights[ids[i]] ?? FALLBACK_ROW_HEIGHT;
+    }
+    return out;
+    // heightsRef isn't reactive, but row layout changes call updateHeight
+    // which mutates it; the meaningful trigger for re-deriving resting
+    // offsets is `data` reordering.
+  }, [data, keyExtractor]);
+
   return (
     <View style={style}>
       {data.map((item, index) => {
@@ -375,6 +405,7 @@ function DraggableListInner<T>({
             item={item}
             index={index}
             isActive={isActive}
+            restingY={restingYs[index]}
             gesture={gesture}
             renderItem={renderItem}
             translateYsRef={translateYsRef}
@@ -391,6 +422,7 @@ type DraggableRowProps<T> = {
   item: T;
   index: number;
   isActive: boolean;
+  restingY: number;
   gesture: ReturnType<typeof Gesture.Simultaneous>;
   renderItem: (info: DraggableListRenderItemInfo<T>) => ReactNode;
   translateYsRef: React.MutableRefObject<Map<string, SharedValue<number>>>;
@@ -402,6 +434,7 @@ function DraggableRow<T>({
   item,
   index,
   isActive,
+  restingY,
   gesture,
   renderItem,
   translateYsRef,
@@ -425,6 +458,39 @@ function DraggableRow<T>({
     [id, onHeight]
   );
 
+  // Reorder handling: when this row's resting (flex) position changes because
+  // a mid-drag commit reordered the data, reconcile its translateY in the
+  // SAME commit as the relayout.
+  const prevRestingYRef = useRef(restingY);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
+  // useLayoutEffect (not useEffect) is load-bearing: the reorder re-renders
+  // rows into their NEW flex slots. A passive effect runs *after* paint, so
+  // both branches below would land a frame late — long enough to see a flash
+  // (a background row at its new slot before it slides; the dragged row
+  // snapping off the finger and back). Running before paint applies the
+  // offset in the same commit as the layout change, so neither flashes.
+  useLayoutEffect(() => {
+    const prev = prevRestingYRef.current;
+    prevRestingYRef.current = restingY;
+    if (prev === restingY) return;
+    const delta = restingY - prev;
+    if (isActiveRef.current) {
+      // Dragged row: its flex slot just shifted by `delta`. Counter it
+      // instantly (no animation) so the row stays pinned under the finger
+      // instead of flashing toward its origin and back. The gesture handler
+      // already shifted dragCorrection by the same delta, so the next finger
+      // update stays consistent with this offset.
+      translateY.value = translateY.value - delta;
+      return;
+    }
+    // Background row: pre-position at its OLD slot, then animate to the new
+    // one. withTiming cancels any in-flight reorder animation, so grabbing a
+    // new drag mid-slide doesn't strand the row.
+    translateY.value = -delta; // == prev - restingY
+    translateY.value = withTiming(0, REORDER_TIMING);
+  }, [restingY, translateY]);
+
   // scale lives in the worklet too so the single `transform` array
   // isn't fought over by RN's style merging (last writer wins).
   const animatedStyle = useAnimatedStyle(() => ({
@@ -436,10 +502,6 @@ function DraggableRow<T>({
 
   return (
     <Animated.View
-      // LinearTransition animates non-active rows to their new positions
-      // on reorder. Disabled for the active row so it stays under the
-      // finger; we manually correct translateY across the layout jump.
-      layout={isActive ? undefined : LINEAR_TRANSITION}
       onLayout={handleLayout}
       style={[styles.row, isActive && styles.rowActive, animatedStyle]}
     >
@@ -448,9 +510,10 @@ function DraggableRow<T>({
   );
 }
 
-const LINEAR_TRANSITION = LinearTransition.duration(200).easing(
-  Easing.bezier(0.25, 0.1, 0.25, 1)
-);
+const REORDER_TIMING = {
+  duration: 250,
+  easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+};
 
 const styles = StyleSheet.create({
   // Rows participate in normal flex column flow — no absolute

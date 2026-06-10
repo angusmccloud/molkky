@@ -16,7 +16,7 @@ export enum TextSizes {
   XXL = "XXL",
   XXXL = "XXXL",
 }
-interface TextProps extends PaperTextProps {
+interface TextProps extends PaperTextProps<never> {
   size?: TextSizes;
   bold?: boolean;
   italic?: boolean;
@@ -24,7 +24,7 @@ interface TextProps extends PaperTextProps {
   numberOfLines?: number;
   style?: any;
   color?: string | undefined;
-  children: string;
+  children: React.ReactNode;
 }
 
 const Text = (props: TextProps) => {
@@ -64,7 +64,7 @@ const Text = (props: TextProps) => {
 
 export default Text;
 
-const sizeToVariant = (size) => {
+const sizeToVariant = (size: TextSizes) => {
   switch (size) {
     case TextSizes.XXXL:
       return typography.fontSizeXXXL;

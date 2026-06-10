@@ -43,6 +43,10 @@ export interface GameTurn {
   score: number;
   gameRound: number;
   startingScore: number;
+  // Snapshots of the player's miss-streak and over-count at the start of the turn,
+  // used to reliably restore state on undo. Optional for backwards compatibility.
+  startingMisses?: number;
+  startingTimesOver?: number;
   winnableTurn: boolean;
   wonOnTurn: boolean;
   endingScore: number;
@@ -79,9 +83,6 @@ export interface Game {
 
 export interface Identity {
   localUserId: string;
-  // Tracks whether we've already done the one-time pull-down from Firestore
-  // for the currently signed-in firebase uid. Stored per-uid.
-  firstSyncPulledFor: string[];
 }
 
 export interface MetaState {
@@ -113,33 +114,63 @@ async function writeJSON<T>(key: string, value: T): Promise<void> {
 }
 
 // ----------------------------------------------------------------------------
+// Per-key async mutex
+// ----------------------------------------------------------------------------
+//
+// Every mutation here is a read-whole-blob -> mutate -> write-whole-blob, with
+// an `await` between the read and the write. JS yields the event loop at each
+// `await`, and we have many concurrent callers hitting the same storage key:
+// fire-and-forget enqueue/upsert, the periodic processQueue timer, per-op
+// setGameSyncStatus, the cloud-pull upsertGame loop, and UI updateGame during
+// play. Without serialization these interleave — two callers both read the same
+// old blob, each mutates its own copy, and the last write wins — silently losing
+// games and dropping/duplicating sync ops.
+//
+// withLock serializes the read->modify->write of all mutations on the SAME key
+// by chaining a promise per key (a simple Map<key, Promise> tail). Different
+// keys run independently. Pure reads (getAllGames, getQueue, etc.) stay
+// UNGUARDED: writeJSON is a single atomic AsyncStorage.setItem, so a read always
+// sees either the whole old blob or the whole new blob, never a torn one.
+//
+// DEADLOCK SAFETY: no function called while holding a key's lock may itself call
+// withLock on that same key. The guarded mutations below only call the unguarded
+// pure reads and writeJSON, so this holds.
+const keyLocks = new Map<string, Promise<unknown>>();
+
+function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  // Wait for the previous operation on this key to finish, then run ours. We
+  // swallow the previous op's rejection so one failure can't poison the chain.
+  const prev = keyLocks.get(key) ?? Promise.resolve();
+  const run = prev.then(fn, fn);
+  // Park a non-throwing tail so the next caller chains off completion, not value.
+  keyLocks.set(
+    key,
+    run.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return run;
+}
+
+// ----------------------------------------------------------------------------
 // Identity
 // ----------------------------------------------------------------------------
 
 export const getIdentity = async (): Promise<Identity> => {
-  const existing = await readJSON<Identity | null>(STORAGE_KEYS.identity, null);
-  if (existing && existing.localUserId) {
-    return existing;
-  }
-  const fresh: Identity = {
-    localUserId: `local-${String(uuid.v4())}`,
-    firstSyncPulledFor: [],
-  };
-  await writeJSON(STORAGE_KEYS.identity, fresh);
-  return fresh;
-};
-
-export const markFirstSyncPulled = async (firebaseUid: string): Promise<void> => {
-  const ident = await getIdentity();
-  if (!ident.firstSyncPulledFor.includes(firebaseUid)) {
-    ident.firstSyncPulledFor.push(firebaseUid);
-    await writeJSON(STORAGE_KEYS.identity, ident);
-  }
-};
-
-export const hasFirstSyncPulled = async (firebaseUid: string): Promise<boolean> => {
-  const ident = await getIdentity();
-  return ident.firstSyncPulledFor.includes(firebaseUid);
+  // Guarded so two concurrent first-calls can't each generate a fresh id and
+  // clobber each other — the second caller must see the id the first wrote.
+  return withLock(STORAGE_KEYS.identity, async () => {
+    const existing = await readJSON<Identity | null>(STORAGE_KEYS.identity, null);
+    if (existing && existing.localUserId) {
+      return existing;
+    }
+    const fresh: Identity = {
+      localUserId: `local-${String(uuid.v4())}`,
+    };
+    await writeJSON(STORAGE_KEYS.identity, fresh);
+    return fresh;
+  });
 };
 
 // ----------------------------------------------------------------------------
@@ -161,33 +192,76 @@ export const getLocalGame = async (id: string): Promise<Game | null> => {
 };
 
 export const upsertGame = async (game: Game): Promise<Game> => {
-  const games = await getAllGames();
-  const idx = games.findIndex((g) => g.id === game.id);
-  const updated: Game = {
-    ...game,
-    localUpdatedAt: Date.now(),
-  };
-  if (idx >= 0) {
-    games[idx] = updated;
-  } else {
-    games.push(updated);
-  }
-  await writeJSON(STORAGE_KEYS.games, games);
-  return updated;
+  // Guarded: read->modify->write of the whole games blob must be atomic vs other
+  // games mutations, or concurrent writers clobber each other and lose games.
+  return withLock(STORAGE_KEYS.games, async () => {
+    const games = await getAllGames();
+    const idx = games.findIndex((g) => g.id === game.id);
+    const updated: Game = {
+      ...game,
+      localUpdatedAt: Date.now(),
+    };
+    if (idx >= 0) {
+      games[idx] = updated;
+    } else {
+      games.push(updated);
+    }
+    await writeJSON(STORAGE_KEYS.games, games);
+    return updated;
+  });
+};
+
+/**
+ * Atomically read-modify-write a single game. `updater` receives the current
+ * stored game (or null if absent) and returns the new value to store, or null
+ * to make no change. The read and write run inside the SAME per-key critical
+ * section, so this is the safe way to do a read-modify-write that spans a load
+ * and a save — calling getLocalGame() then upsertGame() from the caller does
+ * the read OUTSIDE the lock, which loses one of two concurrent patches to the
+ * same game (the classic lost-update race). `updater` must be synchronous and
+ * must not call back into a guarded games mutation (that would deadlock).
+ */
+export const mutateGame = async (
+  id: string,
+  updater: (existing: Game | null) => Game | null,
+): Promise<Game | null> => {
+  return withLock(STORAGE_KEYS.games, async () => {
+    const games = await getAllGames();
+    const idx = games.findIndex((g) => g.id === id);
+    const existing = idx >= 0 ? games[idx] : null;
+    const next = updater(existing);
+    if (next === null) return existing;
+    const updated: Game = { ...next, id, localUpdatedAt: Date.now() };
+    if (idx >= 0) {
+      games[idx] = updated;
+    } else {
+      games.push(updated);
+    }
+    await writeJSON(STORAGE_KEYS.games, games);
+    return updated;
+  });
 };
 
 export const deleteLocalGame = async (id: string): Promise<void> => {
-  const games = await getAllGames();
-  const next = games.filter((g) => g.id !== id);
-  await writeJSON(STORAGE_KEYS.games, next);
+  // Guarded: atomic read->filter->write so a concurrent upsert can't resurrect
+  // the deleted game (or have its write dropped).
+  return withLock(STORAGE_KEYS.games, async () => {
+    const games = await getAllGames();
+    const next = games.filter((g) => g.id !== id);
+    await writeJSON(STORAGE_KEYS.games, next);
+  });
 };
 
 export const setGameSyncStatus = async (id: string, status: SyncStatus): Promise<void> => {
-  const games = await getAllGames();
-  const idx = games.findIndex((g) => g.id === id);
-  if (idx < 0) return;
-  games[idx] = { ...games[idx], syncStatus: status };
-  await writeJSON(STORAGE_KEYS.games, games);
+  // Guarded: atomic so a sync-status flip can't clobber a concurrent gameplay
+  // upsert (and vice versa) on the same games blob.
+  return withLock(STORAGE_KEYS.games, async () => {
+    const games = await getAllGames();
+    const idx = games.findIndex((g) => g.id === id);
+    if (idx < 0) return;
+    games[idx] = { ...games[idx], syncStatus: status };
+    await writeJSON(STORAGE_KEYS.games, games);
+  });
 };
 
 /**
@@ -195,23 +269,27 @@ export const setGameSyncStatus = async (id: string, status: SyncStatus): Promise
  * Used on sign-in: local-owned games become owned by the firebase uid.
  */
 export const reassignGamesOwner = async (fromUid: string, toUid: string): Promise<Game[]> => {
-  const games = await getAllGames();
-  const changed: Game[] = [];
-  const next = games.map((g) => {
-    if (g.uid === fromUid) {
-      const updated: Game = {
-        ...g,
-        uid: toUid,
-        syncStatus: 'pending',
-        localUpdatedAt: Date.now(),
-      };
-      changed.push(updated);
-      return updated;
-    }
-    return g;
+  // Guarded: atomic read->remap->write so the ownership rewrite can't be lost to
+  // (or lose) a concurrent gameplay upsert on the same games blob.
+  return withLock(STORAGE_KEYS.games, async () => {
+    const games = await getAllGames();
+    const changed: Game[] = [];
+    const next = games.map((g) => {
+      if (g.uid === fromUid) {
+        const updated: Game = {
+          ...g,
+          uid: toUid,
+          syncStatus: 'pending',
+          localUpdatedAt: Date.now(),
+        };
+        changed.push(updated);
+        return updated;
+      }
+      return g;
+    });
+    await writeJSON(STORAGE_KEYS.games, next);
+    return changed;
   });
-  await writeJSON(STORAGE_KEYS.games, next);
-  return changed;
 };
 
 // ----------------------------------------------------------------------------
@@ -223,19 +301,27 @@ export const getFriends = async (): Promise<Friend[]> => {
 };
 
 export const setFriends = async (friends: Friend[]): Promise<void> => {
-  await writeJSON(STORAGE_KEYS.friends, friends);
+  // Guarded so a wholesale replace is serialized against a concurrent
+  // addLocalFriends merge on the same friends blob.
+  return withLock(STORAGE_KEYS.friends, async () => {
+    await writeJSON(STORAGE_KEYS.friends, friends);
+  });
 };
 
 export const addLocalFriends = async (newFriends: Friend[]): Promise<Friend[]> => {
-  const existing = await getFriends();
-  const merged = [...existing];
-  for (const f of newFriends) {
-    if (!merged.some((m) => m.id === f.id)) {
-      merged.push(f);
+  // Guarded: atomic read->merge->write so two concurrent adds don't each start
+  // from the same list and drop one another's friends.
+  return withLock(STORAGE_KEYS.friends, async () => {
+    const existing = await getFriends();
+    const merged = [...existing];
+    for (const f of newFriends) {
+      if (!merged.some((m) => m.id === f.id)) {
+        merged.push(f);
+      }
     }
-  }
-  await writeJSON(STORAGE_KEYS.friends, merged);
-  return merged;
+    await writeJSON(STORAGE_KEYS.friends, merged);
+    return merged;
+  });
 };
 
 // ----------------------------------------------------------------------------
@@ -257,48 +343,83 @@ export const getQueue = async (): Promise<SyncOp[]> => {
 };
 
 export const setQueue = async (queue: SyncOp[]): Promise<void> => {
-  await writeJSON(STORAGE_KEYS.syncQueue, queue);
+  // Guarded so a wholesale queue replace is serialized against concurrent
+  // enqueue/remove/retry/rotate mutations on the same queue blob.
+  return withLock(STORAGE_KEYS.syncQueue, async () => {
+    await writeJSON(STORAGE_KEYS.syncQueue, queue);
+  });
 };
 
 export const enqueueOp = async (op: Omit<SyncOp, 'id' | 'retries' | 'createdAt'>): Promise<SyncOp> => {
-  const queue = await getQueue();
-  // Deduplicate game.upsert by gameId — only the latest payload matters.
-  let next = queue;
-  if (op.type === 'game.upsert' && op.payload?.id) {
-    next = queue.filter(
-      (q) => !(q.type === 'game.upsert' && q.payload?.id === op.payload.id),
-    );
-  }
-  if (op.type === 'user.updateFriends') {
-    // Only need the most-recent friends snapshot.
-    next = next.filter((q) => q.type !== 'user.updateFriends');
-  }
-  const fullOp: SyncOp = {
-    id: String(uuid.v4()),
-    retries: 0,
-    createdAt: Date.now(),
-    ...op,
-  };
-  next.push(fullOp);
-  await writeJSON(STORAGE_KEYS.syncQueue, next);
-  return fullOp;
+  // Guarded: atomic read->dedupe->append->write so concurrent enqueues (and the
+  // processQueue remove/rotate) can't read the same blob and drop one another's
+  // ops — losing pending sync work.
+  return withLock(STORAGE_KEYS.syncQueue, async () => {
+    const queue = await getQueue();
+    // Deduplicate game.upsert by gameId — only the latest payload matters.
+    let next = queue;
+    if (op.type === 'game.upsert' && op.payload?.id) {
+      next = queue.filter(
+        (q) => !(q.type === 'game.upsert' && q.payload?.id === op.payload.id),
+      );
+    }
+    if (op.type === 'user.updateFriends') {
+      // Only need the most-recent friends snapshot.
+      next = next.filter((q) => q.type !== 'user.updateFriends');
+    }
+    const fullOp: SyncOp = {
+      id: String(uuid.v4()),
+      retries: 0,
+      createdAt: Date.now(),
+      ...op,
+    };
+    next.push(fullOp);
+    await writeJSON(STORAGE_KEYS.syncQueue, next);
+    return fullOp;
+  });
 };
 
 export const removeOpFromQueue = async (opId: string): Promise<void> => {
-  const queue = await getQueue();
-  await writeJSON(
-    STORAGE_KEYS.syncQueue,
-    queue.filter((q) => q.id !== opId),
-  );
+  // Guarded: atomic read->filter->write so removing a processed op can't clobber
+  // a concurrent enqueue (or vice versa) on the same queue blob.
+  return withLock(STORAGE_KEYS.syncQueue, async () => {
+    const queue = await getQueue();
+    await writeJSON(
+      STORAGE_KEYS.syncQueue,
+      queue.filter((q) => q.id !== opId),
+    );
+  });
 };
 
 export const incrementOpRetries = async (opId: string): Promise<number> => {
-  const queue = await getQueue();
-  const idx = queue.findIndex((q) => q.id === opId);
-  if (idx < 0) return 0;
-  queue[idx] = { ...queue[idx], retries: queue[idx].retries + 1 };
-  await writeJSON(STORAGE_KEYS.syncQueue, queue);
-  return queue[idx].retries;
+  // Guarded: atomic read->modify->write so a retry bump can't be lost to (or
+  // lose) a concurrent enqueue/remove on the same queue blob.
+  return withLock(STORAGE_KEYS.syncQueue, async () => {
+    const queue = await getQueue();
+    const idx = queue.findIndex((q) => q.id === opId);
+    if (idx < 0) return 0;
+    queue[idx] = { ...queue[idx], retries: queue[idx].retries + 1 };
+    await writeJSON(STORAGE_KEYS.syncQueue, queue);
+    return queue[idx].retries;
+  });
+};
+
+/**
+ * Move an op to the back of the queue without dropping it. Used when an op has
+ * failed many times: rotating it stops a single poison op from blocking healthy
+ * ops behind it, while still guaranteeing we never lose the data.
+ */
+export const rotateOpToBack = async (opId: string): Promise<void> => {
+  // Guarded: atomic read->splice->push->write so rotating a poison op can't
+  // clobber a concurrent enqueue/remove on the same queue blob.
+  return withLock(STORAGE_KEYS.syncQueue, async () => {
+    const queue = await getQueue();
+    const idx = queue.findIndex((q) => q.id === opId);
+    if (idx < 0) return;
+    const [op] = queue.splice(idx, 1);
+    queue.push(op);
+    await writeJSON(STORAGE_KEYS.syncQueue, queue);
+  });
 };
 
 // ----------------------------------------------------------------------------
@@ -310,8 +431,13 @@ export const getMeta = async (): Promise<MetaState> => {
 };
 
 export const setMeta = async (meta: Partial<MetaState>): Promise<void> => {
-  const current = await getMeta();
-  await writeJSON(STORAGE_KEYS.meta, { ...current, ...meta });
+  // Guarded: atomic read->merge->write so two concurrent partial updates (e.g.
+  // lastSyncedAt and lastSyncError) don't each start from the same blob and drop
+  // one another's field.
+  return withLock(STORAGE_KEYS.meta, async () => {
+    const current = await getMeta();
+    await writeJSON(STORAGE_KEYS.meta, { ...current, ...meta });
+  });
 };
 
 // ----------------------------------------------------------------------------
@@ -319,3 +445,17 @@ export const setMeta = async (meta: Partial<MetaState>): Promise<void> => {
 // ----------------------------------------------------------------------------
 
 export const newLocalId = (): string => String(uuid.v4());
+
+/**
+ * Wipe all per-user data from this device (games, friends, pending sync queue,
+ * sync meta). The stable local identity is preserved so the device can keep
+ * playing as a guest afterwards. Used when deleting an account.
+ */
+export const clearLocalUserData = async (): Promise<void> => {
+  await Promise.all([
+    AsyncStorage.removeItem(STORAGE_KEYS.games),
+    AsyncStorage.removeItem(STORAGE_KEYS.friends),
+    AsyncStorage.removeItem(STORAGE_KEYS.syncQueue),
+    AsyncStorage.removeItem(STORAGE_KEYS.meta),
+  ]);
+};

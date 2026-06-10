@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Pressable, Platform } from 'react-native';
+import { Asset } from 'expo-asset';
+import { File } from 'expo-file-system';
+import Share from 'react-native-share';
 import { useTheme } from 'react-native-paper';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Button from '@/components/Button';
@@ -12,6 +15,7 @@ import { getGame, updateGame, createGame } from '@/services/games';
 import useStyles from './GameBoardStyles';
 import typography from '@/constants/Typography';
 
+const appIcon = require('@/assets/images/icon.png');
 
 const GameBoard = (props) => {
   const [turnPosting, setTurnPosting] = useState(false);
@@ -28,10 +32,9 @@ const GameBoard = (props) => {
   const tabBarHeight = useBottomTabBarHeight();
   const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
 
-  if(!gameId) {
-    return null;
-  }
-
+  // All hooks must run before any early return (rules-of-hooks) — the
+  // `if (!gameId) return null` guard lives below this effect. The effect
+  // itself no-ops when gameId is falsy.
   useEffect(() => {
     const fetchGame = async (gameId) => {
       try {
@@ -53,6 +56,10 @@ const GameBoard = (props) => {
     // re-renders would race with in-flight local writes and overwrite
     // fresh state with stale.
   }, [gameId]);
+
+  if (!gameId) {
+    return null;
+  }
 
   if (!game) {
     return (
@@ -76,19 +83,19 @@ const GameBoard = (props) => {
     winningPlayerId 
   } = game;
 
-  const getNextPlayerId = (currentPlayerId) => {
+  const getNextPlayerIdFrom = (currentPlayerId, scoresSource) => {
     const currentPlayerIndex = players.findIndex(player => player.id === currentPlayerId);
     let nextIndex = (currentPlayerIndex + 1) % players.length;
-    
-    // Skip eliminated players
-    while (scores.find(s => s.playerId === players[nextIndex].id).isOut) {
+
+    while (scoresSource.find(s => s.playerId === players[nextIndex].id)?.isOut) {
       nextIndex = (nextIndex + 1) % players.length;
-      // If we've gone through all players and they're all eliminated except one, break
       if (nextIndex === currentPlayerIndex) break;
     }
-    
+
     return players[nextIndex].id;
   };
+
+  const getNextPlayerId = (currentPlayerId) => getNextPlayerIdFrom(currentPlayerId, scores);
 
   const checkForWinByElimination = (newScores) => {
     const playersNotOut = newScores.filter(score => !score.isOut);
@@ -100,24 +107,27 @@ const GameBoard = (props) => {
       setTurnPosting(true);
 
       const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
-      const nextPlayerId = getNextPlayerId(whichPlayersTurn);
       const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
-      const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+      const currentScoreEntry = scores.find(s => s.playerId === whichPlayersTurn);
+      const startingScore = currentScoreEntry.score;
+      const startingMisses = currentScoreEntry.misses;
+      const startingTimesOver = currentScoreEntry.timesOver;
       const endingScore = startingScore + score > rules.winningScore ? rules.goBackToScore : startingScore + score;
       const winningTurn = endingScore === rules.winningScore;
       const wentOver = startingScore + score > rules.winningScore;
       const gotZero = score === 0;
-      
+
       const newScores = scores.map(scoreEntry => {
         if (scoreEntry.playerId === whichPlayersTurn) {
+          // `misses` is the *consecutive*-zero streak; any pin contact (1-12) resets it,
+          // even when the score caused a go-over reset.
           const currentMisses = gotZero ? scoreEntry.misses + 1 : 0;
           const currentTimesOver = wentOver ? scoreEntry.timesOver + 1 : scoreEntry.timesOver;
-          
-          // Check for elimination
+
           const eliminatedByMisses = rules.outAfterThreeMisses && currentMisses >= 3;
           const eliminatedByOvers = rules.outAfterThreeTimesOver && currentTimesOver >= 3;
           const isOut = eliminatedByMisses || eliminatedByOvers;
-          
+
           return {
             ...scoreEntry,
             score: endingScore,
@@ -130,16 +140,20 @@ const GameBoard = (props) => {
         }
       });
 
-      // Check for win by elimination
       const winByElimination = checkForWinByElimination(newScores);
       const finalWinningTurn = winningTurn || winByElimination;
       const finalWinningPlayerId = winningTurn ? whichPlayersTurn : winByElimination;
+
+      // Use newScores so a just-eliminated current player isn't picked as the next turn.
+      const nextPlayerId = getNextPlayerIdFrom(whichPlayersTurn, newScores);
 
       const thisTurn = {
         playerId: whichPlayersTurn,
         score,
         gameRound,
         startingScore,
+        startingMisses,
+        startingTimesOver,
         winnableTurn: (rules.winningScore - startingScore) <= 12,
         wonOnTurn: winningTurn,
         endingScore,
@@ -187,25 +201,31 @@ const GameBoard = (props) => {
       const newRound = lastTurn.gameRound;
       const newScores = scores.map(scoreEntry => {
         if (scoreEntry.playerId === lastTurn.playerId) {
-          // Calculate what the misses and timesOver should be after undoing
-          let newMisses = scoreEntry.misses;
-          let newTimesOver = scoreEntry.timesOver;
-          
-          // If the last turn was a zero or skip, decrease misses
-          if ((lastTurn.gotZero || lastTurn.skipped) && newMisses > 0) {
-            newMisses = newMisses - 1;
+          // Prefer the snapshot stored on the turn (correct restore for any case,
+          // including non-zero scores that reset the streak). Fall back to a
+          // best-effort delta for older turns that predate the snapshot fields.
+          let newMisses;
+          if (lastTurn.startingMisses !== undefined) {
+            newMisses = lastTurn.startingMisses;
+          } else if (lastTurn.gotZero && scoreEntry.misses > 0) {
+            newMisses = scoreEntry.misses - 1;
+          } else {
+            newMisses = scoreEntry.misses;
           }
-          
-          // If the last turn went over, decrease timesOver
-          if (lastTurn.wentOver && newTimesOver > 0) {
-            newTimesOver = newTimesOver - 1;
+
+          let newTimesOver;
+          if (lastTurn.startingTimesOver !== undefined) {
+            newTimesOver = lastTurn.startingTimesOver;
+          } else if (lastTurn.wentOver && scoreEntry.timesOver > 0) {
+            newTimesOver = scoreEntry.timesOver - 1;
+          } else {
+            newTimesOver = scoreEntry.timesOver;
           }
-          
-          // Check if player should still be eliminated after undo
+
           const eliminatedByMisses = rules.outAfterThreeMisses && newMisses >= 3;
           const eliminatedByOvers = rules.outAfterThreeTimesOver && newTimesOver >= 3;
           const isOut = eliminatedByMisses || eliminatedByOvers;
-          
+
           return {
             ...scoreEntry,
             score: lastTurn.startingScore,
@@ -249,41 +269,25 @@ const GameBoard = (props) => {
       const currentPlayerIndex = players.findIndex(player => player.id === whichPlayersTurn);
       const nextPlayerId = getNextPlayerId(whichPlayersTurn);
       const newRound = players[currentPlayerIndex + 1] ? gameRound : gameRound + 1;
-      const startingScore = scores.filter(score => score.playerId === whichPlayersTurn)[0].score;
+      const currentScoreEntry = scores.find(s => s.playerId === whichPlayersTurn);
+      const startingScore = currentScoreEntry.score;
 
-      // Handle miss counting for skip (treated as a zero)
-      const newScores = scores.map(scoreEntry => {
-        if (scoreEntry.playerId === whichPlayersTurn) {
-          const currentMisses = scoreEntry.misses + 1; // Skip counts as a miss
-          const eliminatedByMisses = rules.outAfterThreeMisses && currentMisses >= 3;
-          const eliminatedByOvers = rules.outAfterThreeTimesOver && scoreEntry.timesOver >= 3;
-          const isOut = eliminatedByMisses || eliminatedByOvers;
-          
-          return {
-            ...scoreEntry,
-            misses: currentMisses,
-            isOut: isOut,
-          };
-        } else {
-          return scoreEntry;
-        }
-      });
-
-      // Check for win by elimination
-      const winByElimination = checkForWinByElimination(newScores);
-
+      // A skip is "as if the turn never happened" for elimination rules:
+      // it doesn't count as a zero and doesn't reset the streak.
       const thisTurn = {
         playerId: whichPlayersTurn,
         score: 0,
         gameRound,
         startingScore,
+        startingMisses: currentScoreEntry.misses,
+        startingTimesOver: currentScoreEntry.timesOver,
         winnableTurn: (rules.winningScore - startingScore) <= 12,
         wonOnTurn: false,
         endingScore: startingScore,
         skipped: true,
         wentOver: false,
-        eliminated: newScores.find(s => s.playerId === whichPlayersTurn).isOut,
-        gotZero: true, // Skip counts as getting zero
+        eliminated: false,
+        gotZero: false,
       };
       const newTurns = [...turns, thisTurn];
 
@@ -291,18 +295,14 @@ const GameBoard = (props) => {
         const newGame = {
           ...game,
           updatedAt: new Date().toISOString(),
-          whichPlayersTurn: winByElimination ? whichPlayersTurn : nextPlayerId,
+          whichPlayersTurn: nextPlayerId,
           turns: newTurns,
           gameRound: newRound,
-          scores: newScores,
-          gameStatus: winByElimination ? 'finished' : game.gameStatus,
-          winningPlayerId: winByElimination ? winByElimination : game.winningPlayerId,
+          gameStatus: game.gameStatus,
+          winningPlayerId: game.winningPlayerId,
         };
         setGame(newGame);
         await updateGame(game.id, newGame);
-        if (winByElimination) {
-          updateGameStatus(newGame);
-        }
         setTurnPosting(false);
       } catch (err) {
         console.log('error posting Skip Turn', err);
@@ -339,6 +339,62 @@ const GameBoard = (props) => {
       } catch (err) {
         console.log('error starting new game', err);
       }
+    }
+  };
+
+  const shareResult = async () => {
+    try {
+      const winnerName = players.find((p) => p.id === winningPlayerId)?.name || 'Someone';
+      const standings = scores
+        .map((s) => ({
+          name: players.find((p) => p.id === s.playerId)?.name || 'Player',
+          score: s.score,
+          isOut: s.isOut,
+        }))
+        .sort((a, b) => b.score - a.score)
+        .map((s, i) => `${i + 1}. ${s.name} — ${s.score}${s.isOut ? ' (out)' : ''}`)
+        .join('\n');
+      const message = `🎯 Mölkky result\n${winnerName} wins!\n\n${standings}`;
+
+      if (Platform.OS === 'ios') {
+        // Resolve the bundled app icon to a base64 data URI. iOS uses it only
+        // for the share-sheet preview thumbnail (linkMetadata.icon) — the
+        // shared item is the text (item.default), so the icon is NOT attached
+        // to the message. See react-native-share activityItemSources docs.
+        let iconDataUri;
+        try {
+          const asset = Asset.fromModule(appIcon);
+          await asset.downloadAsync(); // ensure a local file URI exists
+          if (asset.localUri) {
+            const base64 = await new File(asset.localUri).base64();
+            iconDataUri = `data:image/png;base64,${base64}`;
+          }
+        } catch (iconErr) {
+          // Non-fatal — share still works, just without the custom preview icon.
+          console.log('could not load app icon for share preview', iconErr);
+        }
+
+        await Share.open({
+          failOnCancel: false, // dismissing the sheet shouldn't throw
+          activityItemSources: [
+            {
+              placeholderItem: iconDataUri
+                ? { type: 'url', content: iconDataUri }
+                : { type: 'text', content: message },
+              item: {
+                default: { type: 'text', content: message },
+              },
+              linkMetadata: iconDataUri
+                ? { title: message, icon: iconDataUri }
+                : { title: message },
+            },
+          ],
+        });
+      } else {
+        await Share.open({ message, failOnCancel: false });
+      }
+    } catch (err) {
+      console.log('error sharing result', err);
     }
   };
 
@@ -412,8 +468,8 @@ const GameBoard = (props) => {
           <View style={styles.addPlayerRow}>
             <IconButton
               icon="account-plus"
-              mode="outlined"
-              iconColor={theme.colors.primary}
+              iconColor={theme.colors.onPrimary}
+              containerColor={theme.colors.primary}
               size={typography.fontSizeL}
               onPress={() => setShowAddPlayerModal(true)}
               accessibilityLabel="Add player to game"
@@ -543,6 +599,20 @@ const GameBoard = (props) => {
                   Play Again
                 </Button>
               </View>
+            </View>
+            {/* Match the two-button row above: full row width (flex:1 fills
+                the row, so it spans both buttons + the gap between them) and
+                paddingTop:10 so the gap above mirrors the gap the buttons have
+                to the winner text above them. */}
+            <View style={{ flexDirection: 'row', paddingTop: 10, paddingHorizontal: 10, paddingBottom: 10 }}>
+              <Button
+                variant="secondary"
+                icon="share-variant"
+                onPress={shareResult}
+                style={{ flex: 1 }}
+              >
+                Share Result
+              </Button>
             </View>
           </>
         )}

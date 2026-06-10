@@ -61,6 +61,11 @@ export const lightTheme = {
     onError: white,
     outline: grayDark,
     onSurfaceVariant: grayDark,
+    // Sync status indicator tokens (see components/SyncStatusChip.tsx).
+    syncSynced: '#2e7d32',
+    syncPending: '#f9a825',
+    syncError: red,
+    syncGuest: gray,
   },
 };
 
@@ -94,6 +99,11 @@ export const darkTheme = {
     onError: white,
     outline: grayMedium,
     onSurfaceVariant: grayMedium,
+    // Sync status indicator tokens (see components/SyncStatusChip.tsx).
+    syncSynced: '#2e7d32',
+    syncPending: '#f9a825',
+    syncError: red,
+    syncGuest: gray,
   },
 };
 

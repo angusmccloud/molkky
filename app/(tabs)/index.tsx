@@ -1,14 +1,16 @@
 import { useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigation, useFocusEffect } from 'expo-router';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { Portal, Dialog, useTheme } from 'react-native-paper';
 import Text, { TextSizes } from '@/components/Text';
 import PageWrapper from '@/components/PageWrapper';
 import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
 import { AuthContext } from '@/contexts/AuthContext';
 import GameBoard from '@/containers/GameBoard';
 import NewGameModal from '@/containers/NewGameModal';
-import { getAllUsergames, updateGame } from '@/services/games';
+import GameHistoryList from '@/containers/GameHistoryList';
+import { getAllUsergames, createGame, deleteGame } from '@/services/games';
 import type { Game } from '@/services/localStore';
 
 export default function HomeScreen() {
@@ -16,47 +18,59 @@ export default function HomeScreen() {
   const authContext = useContext(AuthContext);
   const theme = useTheme();
   const [showNewGameModal, setShowNewGameModal] = useState(false);
-  const [currentGame, setCurrentGame] = useState<Game | null>(null);
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [games, setGames] = useState<Game[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Game | null>(null);
 
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
-  const { user, effectiveUid } = authContext;
+  const { user, effectiveUid, dataVersion } = authContext;
 
-  const fetchLatestGame = useCallback(async () => {
+  const fetchGames = useCallback(async () => {
     if (!effectiveUid) {
-      setCurrentGame(null);
+      setGames([]);
       return;
     }
     try {
-      const games = await getAllUsergames(effectiveUid);
-      const filtered = games
-        .filter((g) => g.gameStatus !== 'abandoned')
-        .sort((a, b) => {
-          const ta = Date.parse(a.createdAt || '') || 0;
-          const tb = Date.parse(b.createdAt || '') || 0;
-          return tb - ta;
-        });
-      setCurrentGame(filtered.length > 0 ? filtered[0] : null);
+      const all = await getAllUsergames(effectiveUid);
+      setGames(all.filter((g) => g.gameStatus !== 'abandoned'));
     } catch (e) {
-      console.log('Error fetching latest game:', e);
-      setCurrentGame(null);
+      console.log('Error fetching games:', e);
+      setGames([]);
     }
   }, [effectiveUid]);
 
   useEffect(() => {
-    fetchLatestGame();
-  }, [effectiveUid, showNewGameModal, fetchLatestGame]);
+    fetchGames();
+  }, [effectiveUid, dataVersion, fetchGames]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchLatestGame();
-    }, [fetchLatestGame]),
+      fetchGames();
+    }, [fetchGames]),
   );
 
-  // HeaderLeft button logic
+  // HeaderLeft: a back arrow while viewing a game's scorecard, otherwise the
+  // "New Game" action that opens the new-game modal.
   useEffect(() => {
     if (!navigation) return;
-    if (!currentGame || currentGame.gameStatus === 'finished') {
+    if (selectedGameId) {
+      navigation.setOptions?.({
+        headerLeft: () => (
+          <View style={{ marginLeft: 4 }}>
+            <IconButton
+              icon="arrow-left"
+              mode="standard"
+              iconColor={theme.colors.onPrimary}
+              onPress={() => {
+                setSelectedGameId(null);
+                fetchGames();
+              }}
+              accessibilityLabel="Back to games"
+            />
+          </View>
+        ),
+      });
+    } else {
       navigation.setOptions?.({
         headerLeft: () => (
           <View style={{ marginLeft: 10 }}>
@@ -66,50 +80,78 @@ export default function HomeScreen() {
           </View>
         ),
       });
-    } else if (currentGame.gameStatus === 'inProgress') {
-      navigation.setOptions?.({
-        headerLeft: () => (
-          <View style={{ marginLeft: 10 }}>
-            <Button variant="secondary" onPress={() => setDeleteDialogVisible(true)} short>
-              End Game
-            </Button>
-          </View>
-        ),
-      });
-    } else {
-      navigation.setOptions?.({ headerLeft: () => null });
     }
-  }, [navigation, currentGame]);
+  }, [navigation, selectedGameId, fetchGames, theme]);
 
-  const abandonGame = async () => {
-    if (!currentGame) return;
-    try {
-      await updateGame(currentGame.id, { gameStatus: 'abandoned' });
-      setDeleteDialogVisible(false);
-      setCurrentGame(null);
-    } catch (e) {
-      setDeleteDialogVisible(false);
-    }
-  };
+  const handleGameCreated = useCallback(
+    async (gameId: string) => {
+      setShowNewGameModal(false);
+      await fetchGames();
+      if (gameId) setSelectedGameId(gameId);
+    },
+    [fetchGames],
+  );
 
-  const handleGameCreated = async (_gameId: string) => {
-    setShowNewGameModal(false);
-    fetchLatestGame();
-  };
+  const handleViewGame = useCallback((game: Game) => {
+    setSelectedGameId(game.id);
+  }, []);
+
+  // Start a fresh game with the same players, order, and rules.
+  const handlePlayAgain = useCallback(
+    async (game: Game) => {
+      try {
+        const newGameId = await createGame({
+          uid: game.uid,
+          players: game.players,
+          rules: game.rules,
+          scores: game.players.map((player) => ({
+            playerId: player.id,
+            score: 0,
+            timesOver: 0,
+            misses: 0,
+            isOut: false,
+            isWinner: false,
+          })),
+          gameStatus: 'inProgress',
+          gameRound: 1,
+          turns: [],
+          whichPlayersTurn: game.players[0].id,
+        });
+        await fetchGames();
+        if (newGameId) setSelectedGameId(newGameId);
+      } catch (e) {
+        console.log('Error starting new game:', e);
+      }
+    },
+    [fetchGames],
+  );
+
+  const handleDeleteGame = useCallback((game: Game) => {
+    setDeleteTarget(game);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    await deleteGame(id);
+    if (selectedGameId === id) setSelectedGameId(null);
+    await fetchGames();
+  }, [deleteTarget, selectedGameId, fetchGames]);
 
   return (
     <PageWrapper>
       <Portal>
-        <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
-          <Dialog.Title>End Game</Dialog.Title>
+        <Dialog visible={!!deleteTarget} onDismiss={() => setDeleteTarget(null)}>
+          <Dialog.Title>Delete Game</Dialog.Title>
           <Dialog.Content>
-            <Text>Abandon Progress on this Game. This cannot be undone.</Text>
+            <Text>Delete this game permanently? This cannot be undone.</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)} variant="secondary">
+            <Button onPress={() => setDeleteTarget(null)} variant="secondary">
               Cancel
             </Button>
-            <Button onPress={abandonGame}>End Game</Button>
+            <Button onPress={confirmDelete}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -119,17 +161,18 @@ export default function HomeScreen() {
         onGameCreated={handleGameCreated}
       />
       {!user && <GuestBanner />}
-      {!currentGame ? (
-        <View style={{ alignItems: 'center', padding: 20, width: '100%' }}>
-          <View style={{ paddingTop: 20 }}>
-            <Button onPress={() => setShowNewGameModal(true)}>Start a New Game</Button>
-          </View>
-        </View>
-      ) : (
+      {selectedGameId ? (
         <GameBoard
-          gameId={currentGame.id}
-          updateGameStatus={() => fetchLatestGame()}
+          gameId={selectedGameId}
+          updateGameStatus={() => fetchGames()}
           onGameCreated={handleGameCreated}
+        />
+      ) : (
+        <GameHistoryList
+          games={games}
+          onViewGame={handleViewGame}
+          onPlayAgain={handlePlayAgain}
+          onDeleteGame={handleDeleteGame}
         />
       )}
     </PageWrapper>

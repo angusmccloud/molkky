@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from "react-native";
-import { useTheme } from "react-native-paper";
-import { MultiSelect, IMultiSelectRef } from 'react-native-element-dropdown';
+import { useTheme, MD3Theme } from "react-native-paper";
+import { MultiSelect } from 'react-native-element-dropdown';
 import Text, { TextSizes } from '@/components/Text';
 import typography from '@/constants/Typography';
 import useReusableStyles from '@/hooks/useReusableStyles';
 
-interface MultiselectInputProps extends IMultiSelectRef {
+type MultiSelectItem = { label: string; value: string; disabled?: boolean };
+
+interface MultiselectInputProps {
   values: string[];
   setValues: (values: string[]) => void;
-  data: any[];
+  data: MultiSelectItem[];
   placeholder?: string;
   focusPlaceholder?: string;
   valueField?: string;
   label?: string;
   visibleSelectedItem?: boolean;
+  renderItem?: (item: MultiSelectItem, selected?: boolean) => React.ReactElement | null;
 }
 
 const MultiselectInput = (props: MultiselectInputProps) => {
@@ -23,7 +26,7 @@ const MultiselectInput = (props: MultiselectInputProps) => {
   const styles = useStyles(theme);
   const [isFocus, setIsFocus] = useState(false);
 
-  const renderLabel = (label) => {
+  const renderLabel = (label: string) => {
     if (isFocus) {
       return (
         <View style={styles.dropdownLabelWrapper}>
@@ -65,7 +68,7 @@ const MultiselectInput = (props: MultiselectInputProps) => {
 
 export default MultiselectInput;
 
-const useStyles = theme => {
+const useStyles = (theme: MD3Theme) => {
   const reusableStyles = useReusableStyles(theme);
   return StyleSheet.create({
     ...reusableStyles,

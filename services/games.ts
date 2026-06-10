@@ -3,10 +3,12 @@ import {
   getGamesForUid as localGetGamesForUid,
   getLocalGame,
   upsertGame as localUpsertGame,
+  mutateGame,
+  deleteLocalGame,
   newLocalId,
   type Game,
 } from '@/services/localStore';
-import { enqueueGameUpsert } from '@/services/syncQueue';
+import { enqueueGameUpsert, enqueueGameDelete } from '@/services/syncQueue';
 
 /**
  * Local-first games API.
@@ -77,43 +79,61 @@ export const updateGame = async (
   gameData: Partial<Game>,
 ): Promise<boolean> => {
   try {
-    const existing = await getLocalGame(gameId);
-    if (!existing) {
-      // Caller passed a full game object with same id — treat as create
-      // if it actually has the required fields.
-      if (
-        (gameData as Game).uid &&
-        Array.isArray((gameData as Game).players) &&
-        Array.isArray((gameData as Game).scores)
-      ) {
-        const created: Game = {
-          ...(gameData as Game),
-          id: gameId,
-          createdAt: (gameData as Game).createdAt || nowISO(),
-          updatedAt: nowISO(),
-          syncStatus: 'local',
-          localUpdatedAt: Date.now(),
-        };
-        const saved = await localUpsertGame(created);
-        void enqueueGameUpsert(saved);
-        return true;
+    // Atomic read-modify-write: the load + merge + save happen inside the
+    // games lock so two concurrent updates to the SAME game can't read the
+    // same `existing` and clobber each other's patch (e.g. rapid score logs).
+    const saved = await mutateGame(gameId, (existing) => {
+      if (!existing) {
+        // Caller passed a full game object with same id — treat as create
+        // if it actually has the required fields.
+        if (
+          (gameData as Game).uid &&
+          Array.isArray((gameData as Game).players) &&
+          Array.isArray((gameData as Game).scores)
+        ) {
+          return {
+            ...(gameData as Game),
+            id: gameId,
+            createdAt: (gameData as Game).createdAt || nowISO(),
+            updatedAt: nowISO(),
+            syncStatus: 'local',
+            localUpdatedAt: Date.now(),
+          };
+        }
+        return null; // not found and not enough to create — no-op
       }
+      return {
+        ...existing,
+        ...gameData,
+        id: gameId,
+        updatedAt: nowISO(),
+        syncStatus: existing.syncStatus === 'synced' ? 'pending' : existing.syncStatus,
+        localUpdatedAt: Date.now(),
+      };
+    });
+    if (!saved) {
       console.log('[games] updateGame: game not found locally:', gameId);
       return false;
     }
-    const merged: Game = {
-      ...existing,
-      ...gameData,
-      id: gameId,
-      updatedAt: nowISO(),
-      syncStatus: existing.syncStatus === 'synced' ? 'pending' : existing.syncStatus,
-      localUpdatedAt: Date.now(),
-    };
-    const saved = await localUpsertGame(merged);
     void enqueueGameUpsert(saved);
     return true;
   } catch (e) {
     console.log('[games] updateGame error', e);
+    return false;
+  }
+};
+
+/**
+ * Delete a game. Removes it from local storage immediately and enqueues a
+ * cloud delete so it is removed from Firestore on the next sync.
+ */
+export const deleteGame = async (gameId: string): Promise<boolean> => {
+  try {
+    await deleteLocalGame(gameId);
+    void enqueueGameDelete(gameId);
+    return true;
+  } catch (e) {
+    console.log('[games] deleteGame error', e);
     return false;
   }
 };

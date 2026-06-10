@@ -1,36 +1,47 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleProp,
   StyleSheet,
+  useWindowDimensions,
+  View,
   ViewStyle,
 } from 'react-native';
 import { Modal as PaperModal, Portal } from 'react-native-paper';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * API-preserving shim over `react-native-paper`'s `Portal` + `Modal`.
  *
  * Migrated away from `react-native-modal` (stuck on 14.0.0-rc.1, abandoned RC).
- * Paper's Portal uses React's portal mechanism within the same RN view tree, so
- * gesture-handler "Just Works" without the inner `GestureHandlerRootView`
- * workaround that `react-native-modal` required on native.
  *
- * Prop surface kept compatible with the prior `react-native-modal` wrapper:
- *  - `isVisible`         -> Paper `visible`
- *  - `onBackdropPress`   -> Paper `onDismiss` (backdrop tap)
- *  - `onBackButtonPress` -> Paper `onDismiss` (Android hardware back; Paper
- *                          handles hardware back internally when dismissable)
- *  - `avoidKeyboard`     -> conditional `KeyboardAvoidingView` wrapper
- *  - `animationIn` / `animationOut` -> when these are slide-* values, the
- *    content is wrapped in a Reanimated `Animated.View` with
- *    `SlideInDown`/`SlideOutDown` to roughly preserve the prior slide-up
- *    feel. Otherwise Paper's default fade runs.
- *  - `style`             -> applied as `contentContainerStyle` so the modal
- *                          content can be made edge-to-edge (e.g. the
- *                          existing `{ padding: 0, margin: 0 }` style).
- *  - `backdropColor` / `backdropOpacity` -> wired into `overlayAccessibilityLabel`/style.
+ * Sizing: Paper renders `children` inside a `<Surface container>`, whose inner
+ * layer deliberately drops `flex` unless an explicit `height` is set (see
+ * `Surface.tsx`: `flex: flattenedStyles.height || (!container && flex) ? 1 :
+ * undefined`). A `flex: 1` content container therefore collapses to zero
+ * height and every `flex: 1` child (KeyboardAvoidingView, the card) renders at
+ * 0px — a visible backdrop with no content. We instead size the wrapper to the
+ * available screen area (window height minus the safe-area insets that Paper
+ * already reserves as wrapper margins) so flex children have real room.
+ *
+ * Keyboard handling: when `avoidKeyboard` is set, the shim does two things:
+ *   1. Wraps content in a full-height `KeyboardAvoidingView` so
+ *      `behavior="padding"`/`"height"` actually has room to push content up.
+ *   2. Subscribes to keyboard events and caps the inner wrapper's `maxHeight`
+ *      so a tall modal shrinks to fit the visible area above the keyboard
+ *      instead of clipping off the top of the screen. The inner `ScrollView`
+ *      that each modal already renders takes care of the overflow.
+ *
+ * For the shrink-to-fit to take effect, the rendered content (typically a
+ * `modalBody`-styled card) needs `flexShrink: 1` — see `useReusableStyles`.
+ *
+ * Note: `animationIn`/`animationOut` are accepted for backwards compatibility
+ * but are no-ops. The previous implementation used Reanimated layout
+ * animations (`SlideInDown`), which don't reliably fire inside Paper's Portal
+ * on the New Architecture and leave content frozen at the off-screen initial
+ * frame. The entrance is Paper's built-in opacity fade.
  */
 export type ModalShimProps = {
   isVisible: boolean;
@@ -47,6 +58,7 @@ export type ModalShimProps = {
 };
 
 const DEFAULT_BACKDROP_COLOR = 'rgba(52, 52, 52, 0.8)';
+const KEYBOARD_BOTTOM_MARGIN = 16;
 
 const Modal = (props: ModalShimProps) => {
   const {
@@ -55,18 +67,38 @@ const Modal = (props: ModalShimProps) => {
     onBackdropPress,
     onBackButtonPress,
     avoidKeyboard = false,
-    animationIn,
-    animationOut,
     style,
     backdropColor = DEFAULT_BACKDROP_COLOR,
     backdropOpacity = 1,
     dismissable = true,
   } = props;
 
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Paper's Modal wrapper already reserves the safe-area insets as
+  // marginTop/marginBottom, so the area we get to fill is the window minus
+  // those insets.
+  const availableHeight = Math.max(0, screenHeight - insets.top - insets.bottom);
+
+  useEffect(() => {
+    if (!avoidKeyboard) return;
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [avoidKeyboard]);
+
   const handleDismiss = () => {
-    // Paper fires onDismiss for both backdrop tap and Android hardware back.
-    // Prefer onBackdropPress; fall back to onBackButtonPress for parity with
-    // the previous react-native-modal prop surface.
     if (onBackdropPress) {
       onBackdropPress();
     } else if (onBackButtonPress) {
@@ -74,42 +106,41 @@ const Modal = (props: ModalShimProps) => {
     }
   };
 
-  // Roughly preserve the slide-up animation when callers explicitly opted in.
-  const useSlide =
-    (typeof animationIn === 'string' && animationIn.toLowerCase().includes('slide')) ||
-    (typeof animationOut === 'string' && animationOut.toLowerCase().includes('slide'));
-
-  // Backdrop styling. Paper renders a black backdrop by default; we tint it
-  // here so the look matches the prior "rgba(52, 52, 52, 0.8)" backdrop.
   const overlayStyle = {
     backgroundColor: backdropColor,
     opacity: backdropOpacity,
   };
 
-  let content: ReactNode = children;
+  const heightCap: ViewStyle | null =
+    avoidKeyboard && keyboardHeight > 0
+      ? { maxHeight: screenHeight - keyboardHeight - KEYBOARD_BOTTOM_MARGIN }
+      : null;
+
+  let content: ReactNode = (
+    <View style={[styles.shell, heightCap, style]}>{children}</View>
+  );
 
   if (avoidKeyboard) {
     content = (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flexShrink}
+        style={styles.keyboardAvoiding}
       >
         {content}
       </KeyboardAvoidingView>
     );
   }
 
-  if (useSlide) {
-    content = (
-      <Animated.View
-        entering={SlideInDown.duration(250)}
-        exiting={SlideOutDown.duration(200)}
-        style={styles.flexShrink}
-      >
-        {content}
-      </Animated.View>
-    );
-  }
+  // Explicitly size the fill area instead of relying on `flex: 1`, which Paper's
+  // `container` Surface strips (see the doc comment above).
+  content = (
+    <View
+      style={[styles.fill, { width: screenWidth, height: availableHeight }]}
+      pointerEvents="box-none"
+    >
+      {content}
+    </View>
+  );
 
   return (
     <Portal>
@@ -117,8 +148,8 @@ const Modal = (props: ModalShimProps) => {
         visible={isVisible}
         onDismiss={handleDismiss}
         dismissable={dismissable}
-        contentContainerStyle={[styles.contentContainer, style]}
-        style={[styles.backdrop, overlayStyle]}
+        contentContainerStyle={styles.contentContainer}
+        style={overlayStyle}
       >
         {content}
       </PaperModal>
@@ -127,20 +158,24 @@ const Modal = (props: ModalShimProps) => {
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    // The wrapper covers the screen; Paper centers the contentContainer
-    // inside it. We override Paper's default backdrop here.
-  },
   contentContainer: {
-    // Match the previous "fullscreen-ish" feel: the inner modalBody style
-    // (from useReusableStyles) handles the card sizing, so we just want
-    // the container to span the screen without forcing its own padding.
-    alignSelf: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  flexShrink: {
-    // Lets KeyboardAvoidingView/Animated.View shrink to its content's
-    // intrinsic size (the modalBody sets its own width/maxHeight).
+  fill: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyboardAvoiding: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shell: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

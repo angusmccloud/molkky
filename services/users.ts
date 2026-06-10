@@ -8,7 +8,6 @@ import { enqueueUpdateFriends } from '@/services/syncQueue';
 import {
   findOrCreateCloudUser,
   cloudGetUser,
-  cloudGetAllUsers,
   cloudDeleteUser,
   type CloudUserRecord,
   type FindOrCreateUserInput,
@@ -63,6 +62,22 @@ export const addFriendsLocal = async (
 };
 
 /**
+ * Remove a friend from the local list by id and enqueue a sync.
+ */
+export const removeFriendLocal = async (
+  friendId: string,
+  userId?: string | null,
+): Promise<Friend[]> => {
+  const existing = await localGetFriends();
+  const next = existing.filter((f) => f.id !== friendId);
+  await localSetFriends(next);
+  if (userId) {
+    void enqueueUpdateFriends(userId, next);
+  }
+  return next;
+};
+
+/**
  * Backwards-compatible name. Same as setLocalFriends.
  */
 export const updateUserFriends = async (
@@ -85,10 +100,6 @@ export const findOrCreateUser = async (
 
 export const getUser = async (userId: string): Promise<CloudUserRecord | null> => {
   return cloudGetUser(userId);
-};
-
-export const getAllUsers = async (): Promise<CloudUserRecord[]> => {
-  return cloudGetAllUsers();
 };
 
 export const deleteUser = async (userId: string): Promise<boolean> => {

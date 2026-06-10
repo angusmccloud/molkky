@@ -1,9 +1,13 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { View, Pressable, StyleSheet, FlatList, ListRenderItemInfo, Platform } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Portal, Dialog, useTheme } from 'react-native-paper';
 import Text, { TextSizes } from '@/components/Text';
 import Avatar from '@/components/Avatar';
 import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
+import Button from '@/components/Button';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
@@ -28,14 +32,17 @@ type ScoreHistory = { gameId: string; playerId: string; score: number };
 
 const StatsScreen: React.FC = () => {
   const authContext = useContext(AuthContext);
+  const theme = useTheme();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
   const [turnHistory, setTurnHistory] = useState<TurnHistory[]>([]);
   const [scoresHistory, setScoresHistory] = useState<ScoreHistory[]>([]);
+  const [activeGameCounts, setActiveGameCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState<boolean>(true);
+  const [friendToRemove, setFriendToRemove] = useState<Friend | null>(null);
 
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
-  const { effectiveUid, friends: localFriends } = authContext;
+  const { effectiveUid, friends: localFriends, removeFriend, dataVersion } = authContext;
 
   // The tab bar is `position: 'absolute'` on iOS so content scrolls under
   // it. Pad the bottom of the list so the last item can be scrolled fully
@@ -43,13 +50,20 @@ const StatsScreen: React.FC = () => {
   const tabBarHeight = useBottomTabBarHeight();
   const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
 
-  useEffect(() => {
-    const loadStats = async () => {
-      setLoading(true);
+  // Only show the full-screen "Loading Stats..." spinner on the very first
+  // load. Later recalculations (tab refocus, cloud pull) refresh silently so
+  // the list doesn't flash on every visit.
+  const hasLoadedRef = useRef(false);
+
+  const loadStats = useCallback(
+    async () => {
+      if (!effectiveUid) return;
+      if (!hasLoadedRef.current) setLoading(true);
       try {
         // Get all finished games for this effective uid from local store.
         const allGames = (await getAllUsergames(effectiveUid)) as Game[];
         const finishedGames = allGames.filter((g) => g.gameStatus === 'finished');
+        const activeGames = allGames.filter((g) => g.gameStatus !== 'abandoned');
 
         // Friends list comes from local store via AuthContext. Augment with
         // any player names that appear in finished games but aren't in the
@@ -68,6 +82,19 @@ const StatsScreen: React.FC = () => {
           ...Array.from(extras.values()),
         ].sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
         setFriends(combined);
+
+        // Count finished + in-progress game participations per player so the
+        // delete affordance hides for anyone in a current game.
+        const counts: Record<string, number> = {};
+        for (const g of activeGames) {
+          const seen = new Set<string>();
+          for (const p of g.players || []) {
+            if (seen.has(p.id)) continue;
+            seen.add(p.id);
+            counts[p.id] = (counts[p.id] || 0) + 1;
+          }
+        }
+        setActiveGameCounts(counts);
 
         // Build histories
         const playerGameHistory: GameHistory[] = [];
@@ -108,14 +135,33 @@ const StatsScreen: React.FC = () => {
       } catch (e) {
         console.log('-- Error loading stats', e);
       } finally {
+        hasLoadedRef.current = true;
         setLoading(false);
       }
-    };
+    },
+    [effectiveUid, localFriends],
+  );
 
-    if (effectiveUid) loadStats();
-  }, [effectiveUid, localFriends]);
+  // Recalculate on mount and whenever a background cloud pull changes data.
+  useEffect(() => {
+    loadStats();
+  }, [loadStats, dataVersion]);
+
+  // Recalculate whenever the Stats tab gains focus — this is what refreshes
+  // the page after a game finishes or a finished game is deleted on the Home
+  // tab, since both happen while this screen is unfocused.
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats]),
+  );
 
   const keyExtractor = useCallback((item: Friend) => item.id, []);
+
+  const friendIdSet = React.useMemo(
+    () => new Set(localFriends.map((f) => f.id)),
+    [localFriends],
+  );
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<Friend>) => (
@@ -126,13 +172,45 @@ const StatsScreen: React.FC = () => {
         turnHistory={turnHistory.filter((turn) => turn.playerId === item.id && !turn.skipped)}
         scoresHistory={scoresHistory.filter((score) => score.playerId === item.id)}
         allScoresHistory={scoresHistory}
+        totalGameCount={activeGameCounts[item.id] || 0}
+        canRemove={friendIdSet.has(item.id)}
+        onRequestRemove={() => setFriendToRemove(item)}
       />
     ),
-    [gameHistory, turnHistory, scoresHistory],
+    [gameHistory, turnHistory, scoresHistory, activeGameCounts, friendIdSet],
   );
+
+  const handleConfirmRemove = async () => {
+    if (!friendToRemove) return;
+    const id = friendToRemove.id;
+    setFriendToRemove(null);
+    try {
+      await removeFriend(id);
+    } catch (e) {
+      console.log('-- Error removing friend', e);
+    }
+  };
 
   return (
     <PageWrapper>
+      <Portal>
+        <Dialog visible={!!friendToRemove} onDismiss={() => setFriendToRemove(null)}>
+          <Dialog.Title>Remove friend?</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              {`${friendToRemove?.name ?? ''} will be removed from your friends list. They've played 0 games so this won't affect any stats.`}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setFriendToRemove(null)} variant="secondary">
+              Cancel
+            </Button>
+            <Button onPress={handleConfirmRemove} buttonColor={theme.colors.error}>
+              Remove
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text>Loading Stats...</Text>
@@ -162,6 +240,9 @@ interface PlayerStatsProps {
   turnHistory: TurnHistory[];
   scoresHistory: ScoreHistory[];
   allScoresHistory: ScoreHistory[];
+  totalGameCount: number;
+  canRemove: boolean;
+  onRequestRemove: () => void;
 }
 
 const PlayerStats: React.FC<PlayerStatsProps> = ({
@@ -170,7 +251,11 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({
   turnHistory,
   scoresHistory,
   allScoresHistory,
+  totalGameCount,
+  canRemove,
+  onRequestRemove,
 }) => {
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const gamesPlayed = gameHistory.length;
@@ -226,6 +311,8 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({
           },
         ];
 
+  const showRemove = canRemove && totalGameCount === 0;
+
   return (
     <View style={playerStatsStyles.wrapper}>
       <Pressable onPress={toggleExpanded}>
@@ -241,7 +328,18 @@ const PlayerStats: React.FC<PlayerStatsProps> = ({
               <Text size={TextSizes.XS}>{`${gamesPlayed} Game${gamesPlayed !== 1 ? 's' : ''} Played`}</Text>
             </View>
           </View>
-          {gamesPlayed > 0 && <Icon name={expanded ? 'expanded' : 'collapsed'} size={typography.fontSizeXL} />}
+          {showRemove ? (
+            <IconButton
+              icon="trash-can-outline"
+              mode="standard"
+              size={typography.fontSizeXL}
+              iconColor={theme.colors.error}
+              onPress={onRequestRemove}
+              accessibilityLabel={`Remove ${friend.name}`}
+            />
+          ) : (
+            gamesPlayed > 0 && <Icon name={expanded ? 'expanded' : 'collapsed'} size={typography.fontSizeXL} />
+          )}
         </View>
       </Pressable>
       {expanded && gamesPlayed > 0 && (

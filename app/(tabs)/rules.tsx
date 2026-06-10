@@ -8,10 +8,12 @@ import useDeviceDimensions from '@/hooks/useDeviceDimensions';
 import Modal from '@/components/Modal';
 const formation = require('@/assets/images/formation.png');
 
-// Hardcoded for Formation file dimensions
+// Derive the intrinsic dimensions from the bundled asset so the aspect ratio
+// stays correct even if the image is ever swapped. Falls back to a sane ratio.
+const resolved = Image.resolveAssetSource(formation);
 const imageDimensions = {
-  width: 2109,
-  height: 1904
+  width: resolved?.width || 2109,
+  height: resolved?.height || 1904,
 };
 
 export default function RulesScreen() {

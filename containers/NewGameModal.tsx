@@ -27,8 +27,6 @@ type Player = { id: string; name: string };
 
 const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGameCreated: (gameId: string) => void; }) => {
   const { showModal, closeModal, onGameCreated } = props;
-  const [winningScore, setWinningScore] = useState('50');
-  const [goBackToScore, setGoBackToScore] = useState('25');
   const [outAfterThreeMisses, setOutAfterThreeMisses] = useState(false);
   const [outAfterThreeTimesOver, setOutAfterThreeTimesOver] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]); // unified array
@@ -47,8 +45,6 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
   const styles = useStyles(theme);
 
   const resetModal = () => {
-    setWinningScore('50');
-    setGoBackToScore('25');
     setOutAfterThreeMisses(false);
     setOutAfterThreeTimesOver(false);
     setPlayers([]);
@@ -117,8 +113,8 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
           name: player.name,
         })),
         rules: {
-          winningScore: parseInt(winningScore),
-          goBackToScore: parseInt(goBackToScore),
+          winningScore: 50,
+          goBackToScore: 25,
           outAfterThreeMisses,
           outAfterThreeTimesOver,
         },
@@ -156,11 +152,9 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
 
   useEffect(() => {
     const isReady = players.length >= 2 &&
-      players.every(player => player.name.trim() !== '') &&
-      winningScore.trim() !== '' &&
-      goBackToScore.trim() !== '';
+      players.every(player => player.name.trim() !== '');
     setReadyToStart(isReady);
-  }, [players, winningScore, goBackToScore]);
+  }, [players]);
 
   // Shuffle order for players
   const shuffleOrder = () => {
@@ -223,6 +217,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
               </GestureDetector>
               <IconButton
                 icon="close"
+                mode="standard"
                 size={typography.fontSizeM}
                 onPress={() => removePlayer(item.id)}
                 disabled={creatingGame}
@@ -272,17 +267,33 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContent}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 0 }}>
+            {/* Add New Player input — kept above the friend picker so it stays
+                visible above the keyboard even with a long list of players. */}
+            <View style={styles.addPlayerContainer}>
+              <View style={styles.addPlayerInputContainer}>
+                <TextInput
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  label="Add New Player"
+                  placeholder="Enter player name"
+                  autoCapitalize="words"
+                  onSubmitEditing={handleAddCustomPlayer}
+                  returnKeyType="done"
+                  style={styles.addPlayerInput}
+                />
+              </View>
               <IconButton
-                icon="shuffle"
-                mode="outlined"
-                iconColor={theme.colors.primary}
-                size={typography.fontSizeXXL}
-                onPress={shuffleOrder}
-                disabled={players.length < 2 || creatingGame}
-                style={{ marginLeft: 0 }}
+                icon="plus"
+                iconColor={theme.colors.onPrimary}
+                containerColor={theme.colors.primary}
+                size={typography.fontSizeXL}
+                onPress={handleAddCustomPlayer}
+                disabled={!newPlayerName.trim() || creatingGame}
+                style={styles.addPlayerButton}
               />
-              <View style={{ flex: 1, marginBottom: 5 }}>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 0 }}>
+              <View style={{ flex: 1, marginBottom: 5, marginRight: 10 }}>
                 <MultiSelectInput
                   placeholder="Select Friends"
                   label="Select Friends"
@@ -329,6 +340,15 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                   }}
                 />
               </View>
+              <IconButton
+                icon="shuffle"
+                iconColor={theme.colors.onPrimary}
+                containerColor={theme.colors.primary}
+                size={typography.fontSizeXL}
+                onPress={shuffleOrder}
+                disabled={players.length < 2 || creatingGame}
+                style={styles.addPlayerButton}
+              />
             </View>
             {players.length > 0 && (
               <Text
@@ -347,64 +367,18 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
                 renderItem={renderPlayerRow}
               />
             )}
-            {/* Add New Player input */}
-            <View style={styles.addPlayerContainer}>
-              <View style={styles.addPlayerInputContainer}>
-                <TextInput
-                  value={newPlayerName}
-                  onChangeText={setNewPlayerName}
-                  label="Add New Player"
-                  placeholder="Enter player name"
-                  autoCapitalize="words"
-                  onSubmitEditing={handleAddCustomPlayer}
-                  returnKeyType="done"
-                  style={styles.addPlayerInput}
-                />
-              </View>
-              <IconButton
-                icon="plus"
-                mode="outlined"
-                iconColor={theme.colors.primary}
-                size={typography.fontSizeL}
-                onPress={handleAddCustomPlayer}
-                disabled={!newPlayerName.trim() || creatingGame}
-                style={styles.addPlayerButton}
-              />
-            </View>
             <View style={styles.inputWrapper}>
-              <Text>3-Misses and You're Out:</Text>
+              <Text>3-Misses and You&apos;re Out:</Text>
               <Switch
                 value={outAfterThreeMisses}
                 onValueChange={setOutAfterThreeMisses}
               />
             </View>
             <View style={styles.inputWrapper}>
-              <Text>3-Overs and You're Out:</Text>
+              <Text>3-Overs and You&apos;re Out:</Text>
               <Switch
                 value={outAfterThreeTimesOver}
                 onValueChange={setOutAfterThreeTimesOver}
-              />
-            </View>
-            <View style={styles.textInputWrapper}>
-              <TextInput
-                value={winningScore}
-                onChangeText={setWinningScore}
-                label="Target Score"
-                keyboardType="number-pad"
-                placeholder="Points to Win"
-                clearButtonMode="while-editing"
-                maxLength={3}
-              />
-            </View>
-            <View style={styles.textInputWrapper}>
-              <TextInput
-                label='Fall-Back-To Points'
-                value={goBackToScore}
-                onChangeText={setGoBackToScore}
-                keyboardType="number-pad"
-                placeholder="Go-Over Points"
-                clearButtonMode="while-editing"
-                maxLength={3}
               />
             </View>
             {creatingGame && (
@@ -425,8 +399,10 @@ const useStyles = (theme: any) => {
   return StyleSheet.create({
     ...reusableStyles,
     listContent: {
-      padding: 5,
-      paddingBottom: 20,
+      // Uniform padding on all four sides of the modal content. Child rows
+      // avoid trailing/leading outer margins (see addPlayerContainer /
+      // inputWrapper / addPlayerButton) so they don't inflate any one edge.
+      padding: 12,
     },
     playerRowOuter: {
       flex: 1,
@@ -479,11 +455,10 @@ const useStyles = (theme: any) => {
     error: {
       marginTop: 16,
     },
-    textInputWrapper: {
-      marginBottom: 10,
-    },
     inputWrapper: {
-      marginBottom: 10,
+      // Spacing lives on the top so the last switch leaves no trailing
+      // margin below it — the bottom edge is governed by listContent padding.
+      marginTop: 10,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -493,7 +468,6 @@ const useStyles = (theme: any) => {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 6,
-      marginTop: 6,
     },
     addPlayerInputContainer: {
       flex: 1,
@@ -503,7 +477,9 @@ const useStyles = (theme: any) => {
       // Additional styles can be added here if needed
     },
     addPlayerButton: {
-      // Additional styles can be added here if needed
+      // Cancel Paper IconButton's default margin: 6 so the button sits flush
+      // to the right content edge, matching the left inset of the inputs.
+      margin: 0,
     },
   });
 }

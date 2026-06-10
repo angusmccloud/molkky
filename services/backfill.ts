@@ -1,7 +1,5 @@
 import {
   getIdentity,
-  hasFirstSyncPulled,
-  markFirstSyncPulled,
   getAllGames,
   upsertGame,
   reassignGamesOwner,
@@ -15,7 +13,7 @@ import {
   enqueueUpdateFriends,
   processQueue,
 } from '@/services/syncQueue';
-import { cloudGetAllUserGames } from '@/services/cloudGames';
+import { pullAndMergeGames } from '@/services/cloudSync';
 import { findOrCreateCloudUser } from '@/services/cloudUsers';
 
 /**
@@ -67,38 +65,11 @@ export const runLoginBackfill = async (firebaseUser: {
     await enqueueGameUpsert(g);
   }
 
-  // 2) First-time pull-down of any games already in Firestore for this uid.
-  let pulledCount = 0;
-  const alreadyPulled = await hasFirstSyncPulled(uid);
-  if (!alreadyPulled) {
-    try {
-      const remoteGames = await cloudGetAllUserGames(uid);
-      const localGames = await getAllGames();
-      const localById = new Map(localGames.map((g) => [g.id, g]));
-      for (const remote of remoteGames) {
-        const existing = localById.get(remote.id);
-        // Prefer the more-recently-updated copy. If a local version exists
-        // and is newer, we keep local and let the queue push it later.
-        const remoteUpdatedAt = Date.parse(remote.updatedAt || remote.createdAt || '') || 0;
-        const localUpdatedAt = existing
-          ? Math.max(existing.localUpdatedAt, Date.parse(existing.updatedAt || '') || 0)
-          : 0;
-        if (!existing || remoteUpdatedAt > localUpdatedAt) {
-          const merged: Game = {
-            ...remote,
-            uid, // make sure ownership is set
-            syncStatus: 'synced',
-            localUpdatedAt: remoteUpdatedAt || Date.now(),
-          };
-          await upsertGame(merged);
-          pulledCount += 1;
-        }
-      }
-      await markFirstSyncPulled(uid);
-    } catch (e) {
-      console.log('[backfill] failed to pull remote games (continuing offline)', e);
-    }
-  }
+  // 2) Pull any games already in Firestore for this uid and merge them in.
+  //    This runs on every sign-in (not just the first) so a device that's been
+  //    away picks up games created on the user's other devices. The merge is
+  //    union + last-write-wins and never deletes local games. See cloudSync.
+  const pulledCount = await pullAndMergeGames(uid);
 
   // 3) Merge cloud friends into local friends — DEDUP BY NAME, not id.
   //    When the same person exists with different ids on each side (e.g.

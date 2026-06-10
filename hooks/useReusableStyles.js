@@ -27,6 +27,10 @@ const useReusableStyles = theme => {
       overflow: 'hidden',
       width: isTablet ? width * .8 : width * .9,
       maxHeight: height * .8,
+      // Let the Modal shim's height cap shrink this card when the keyboard
+      // is up (RN's default flexShrink is 0, which would let the natural
+      // content height overflow the parent cap and clip off-screen).
+      flexShrink: 1,
     },
     modalHeader: {
       backgroundColor: theme.colors.modalHeader,

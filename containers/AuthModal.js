@@ -1,6 +1,9 @@
-import React, { useState, useRef, useContext, useMemo } from "react";
-import { View, Pressable, ScrollView } from "react-native";
+import React, { useState, useRef, useContext } from "react";
+import { View, Pressable, ScrollView, Linking } from "react-native";
 import { useTheme } from "react-native-paper";
+import { exportUserData } from '@/services/dataExport';
+
+const PRIVACY_POLICY_URL = 'https://connortyrrell.com/privacy-policy-mobile-apps/';
 import typography from '@/constants/Typography';
 import Icon from '@/components/Icon';
 import Text from '@/components/Text';
@@ -20,32 +23,46 @@ const AuthModal = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authInProgress, setAuthInProgress] = useState(false);
   const [formError, setFormError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
 
   const authContext = useContext(AuthContext);
   if (!authContext) {
     throw new Error('AuthContext must be used within an AuthProvider');
   }
-  const { user, isAuthenticated, loading, error, signUp, signIn, signOut } = authContext;
+  const {
+    user,
+    isAuthenticated,
+    loading,
+    error,
+    signUp,
+    signIn,
+    signOut,
+    sendPasswordReset,
+    deleteAccount,
+  } = authContext;
 
   const authStatus = {
     isAuthed: isAuthenticated,
-    name: user?.providerData[0].displayName || '',
-    email: user?.providerData[0].email || '',
+    name: user?.providerData?.[0]?.displayName || '',
+    email: user?.providerData?.[0]?.email || '',
   };
 
   const theme = useTheme();
-  const styles = useMemo(() => useStyles(theme), [theme]);
+  // useStyles is a hook (it calls useReusableStyles); call it directly at the
+  // top level. Wrapping it in useMemo would call a hook inside a callback
+  // (rules-of-hooks violation) and is unnecessary — StyleSheet.create is cheap.
+  const styles = useStyles(theme);
 
   const openModal = () => {
     setShowModal(true);
   };
 
   const closeModal = () => {
-    // console.log('-- closeModal --');
     setShowModal(false);
     setAuthInProgress(false);
     setCurrentView("create");
     setFormError("");
+    setInfoMessage("");
     setEmail("");
     setName("");
     setPassword("");
@@ -106,8 +123,7 @@ const AuthModal = () => {
       setAuthInProgress(false);
     } else {
       try {
-        const newUser = await signUp(email, password, name);
-        console.log('User created successfully:', newUser);
+        await signUp(email, password, name);
         closeModal();
       } catch (err) {
         const code = err?.code || "";
@@ -140,23 +156,75 @@ const AuthModal = () => {
     }
   };
 
-  // const sendResetPasswordLink = async () => {
-  //   setAuthInProgress(true);
-  //   // Send confirmation code to user's email
-  //   try {
-  //     await Auth.forgotPassword(email);
-  //     changeViews("updatePassword");
-  //   } catch (err) {
-  //     console.log(err);
-  //     setFormError("There is no account associated with this email.");
-  //   }
-  //   setAuthInProgress(false);
-  // };
+  const processForgotPassword = async () => {
+    setAuthInProgress(true);
+    setInfoMessage("");
+    if (email.length === 0) {
+      setFormError("Enter your email address");
+      setAuthInProgress(false);
+      return;
+    }
+    try {
+      await sendPasswordReset(email);
+      setFormError("");
+      setInfoMessage(
+        "If an account exists for that email, a password reset link is on its way. Check your inbox."
+      );
+    } catch (err) {
+      const code = err?.code;
+      if (code === "auth/invalid-email") {
+        setFormError("The email address is invalid");
+      } else {
+        // Don't reveal whether an account exists — show the same neutral message.
+        setFormError("");
+        setInfoMessage(
+          "If an account exists for that email, a password reset link is on its way. Check your inbox."
+        );
+      }
+    } finally {
+      setAuthInProgress(false);
+    }
+  };
+
+  const processDeleteAccount = async () => {
+    setAuthInProgress(true);
+    if (password.length === 0) {
+      setFormError("Enter your password to confirm");
+      setAuthInProgress(false);
+      return;
+    }
+    try {
+      await deleteAccount(password);
+      closeModal();
+    } catch (err) {
+      const code = err?.code;
+      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setFormError("Incorrect password");
+      } else if (code === "auth/too-many-requests") {
+        setFormError("Too many attempts. Please try again later.");
+      } else {
+        setFormError(err?.message || "Could not delete account, please try again");
+      }
+      setAuthInProgress(false);
+    }
+  };
 
   const changeViews = (newView) => {
     setFormError("");
+    setInfoMessage("");
     setCurrentView(newView);
+    setPassword("");
     setConfirmPassword("");
+  };
+
+  const handleExportData = async () => {
+    setFormError("");
+    try {
+      await exportUserData();
+    } catch (err) {
+      console.log("data export failed", err);
+      setFormError("Couldn't export your data. Please try again.");
+    }
   };
 
   const ref_loginPassword = useRef();
@@ -205,19 +273,23 @@ const AuthModal = () => {
             </View>
             <View style={{ flex: 1, alignItems: "center" }}>
               <Text color={theme.colors.onBackground} bold size="M">
-                {authStatus.isAuthed
+                {currentView === "delete"
+                  ? "Delete Account"
+                  : authStatus.isAuthed
                   ? "User"
                   : currentView === "login"
                   ? "Sign In"
                   : currentView === "create"
                   ? "Sign Up"
-                  : "Reset Password"}
+                  : currentView === "forgot"
+                  ? "Reset Password"
+                  : "Sign Up"}
               </Text>
             </View>
             <View style={{ flex: 1 }}></View>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled">
-            {authStatus.isAuthed && (
+            {authStatus.isAuthed && currentView !== "delete" && (
               <View style={styles.logoutWrapper}>
                 <Text style={{ marginBottom: 10 }}>
                   You are currently logged in as {authStatus.name} (
@@ -230,13 +302,80 @@ const AuthModal = () => {
                 >
                   Logout
                 </Button>
-                {/* <View style={{ paddingTop: 10 }}>
+                <View style={{ paddingTop: 20 }}>
                   <Button
-                    text="Manage Profile"
                     variant="secondary"
-                    onPress={goToUserPage}
-                  />
-                </View> */}
+                    onPress={handleExportData}
+                    disabled={authInProgress}
+                  >
+                    Export My Data
+                  </Button>
+                </View>
+                <View style={{ paddingTop: 20 }}>
+                  <Button
+                    variant="secondary"
+                    onPress={() => changeViews("delete")}
+                    disabled={authInProgress}
+                  >
+                    Delete Account
+                  </Button>
+                </View>
+              </View>
+            )}
+            {authStatus.isAuthed && currentView === "delete" && (
+              <View style={styles.logoutWrapper}>
+                <Text bold style={{ marginBottom: 10 }}>
+                  Delete your account?
+                </Text>
+                <Text style={{ marginBottom: 10, textAlign: "center" }}>
+                  This permanently deletes your account and all of your games
+                  from the cloud. This cannot be undone. Enter your password to
+                  confirm.
+                </Text>
+                <TextInput
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setFormError("");
+                  }}
+                  onSubmitEditing={processDeleteAccount}
+                  label="Password"
+                  autoCompleteType="password"
+                  clearButtonMode="while-editing"
+                  maxLength={50}
+                  returnKeyType="go"
+                  secureTextEntry={true}
+                  textContentType="password"
+                  value={password}
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                />
+                {formError !== "" && (
+                  <Text
+                    color={theme.colors.error}
+                    style={{ marginTop: 10, marginBottom: 10 }}
+                  >
+                    {formError}
+                  </Text>
+                )}
+                <Button
+                  variant="primary"
+                  onPress={processDeleteAccount}
+                  disabled={authInProgress}
+                >
+                  Permanently Delete Account
+                </Button>
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    variant="secondary"
+                    onPress={() => changeViews("create")}
+                    disabled={authInProgress}
+                  >
+                    Cancel
+                  </Button>
+                </View>
               </View>
             )}
             {!authStatus.isAuthed && currentView === "login" && (
@@ -302,20 +441,80 @@ const AuthModal = () => {
                 >
                   Login
                 </Button>
-                {/* <View style={{ marginTop: 10 }}>
+                <View style={{ marginTop: 10 }}>
                   <Button
-                    text="Forgot Password?"
-                    variant="primary"
-                    onPress={() => changeViews("forgotPassword")}
+                    variant="secondary"
+                    onPress={() => changeViews("forgot")}
                     disabled={authInProgress}
-                  />
-                </View> */}
+                  >
+                    Forgot Password?
+                  </Button>
+                </View>
                 <View style={{ marginTop: 10 }}>
                   <Button
                     variant="secondary"
                     onPress={() => changeViews("create")}
                   >
                     Create New Account
+                  </Button>
+                </View>
+              </View>
+            )}
+            {!authStatus.isAuthed && currentView === "forgot" && (
+              <View style={{ padding: 10, alignItems: "center" }}>
+                <Text bold style={{ marginBottom: 10 }}>
+                  Enter your email and we&apos;ll send you a reset link
+                </Text>
+                <TextInput
+                  clearButtonMode="while-editing"
+                  maxLength={50}
+                  returnKeyType="go"
+                  label="Email Address"
+                  value={email}
+                  enablesReturnKeyAutomatically={true}
+                  autoCompleteType="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  style={[
+                    styles.textInput,
+                    styles.modalTextInput,
+                    styles.textInputWrapper,
+                  ]}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setFormError("");
+                  }}
+                  onSubmitEditing={processForgotPassword}
+                />
+                {formError !== "" && (
+                  <Text
+                    color={theme.colors.error}
+                    style={{ marginTop: 10, marginBottom: 10 }}
+                  >
+                    {formError}
+                  </Text>
+                )}
+                {infoMessage !== "" && (
+                  <Text
+                    style={{ marginTop: 10, marginBottom: 10, textAlign: "center" }}
+                  >
+                    {infoMessage}
+                  </Text>
+                )}
+                <Button
+                  variant="primary"
+                  onPress={processForgotPassword}
+                  disabled={authInProgress}
+                >
+                  Send Reset Link
+                </Button>
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    variant="secondary"
+                    onPress={() => changeViews("login")}
+                    disabled={authInProgress}
+                  >
+                    Back to Sign In
                   </Button>
                 </View>
               </View>
@@ -430,6 +629,19 @@ const AuthModal = () => {
                 </View>
               </View>
             )}
+            {/* Always-visible footer — the privacy policy must be reachable
+                from inside the app (App Store / Play requirement) regardless of
+                auth state or which sub-view is showing. */}
+            <Pressable
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+              style={{ paddingVertical: 16, alignItems: "center" }}
+              accessibilityRole="link"
+              accessibilityLabel="Open the privacy policy"
+            >
+              <Text size="S" color={theme.colors.primary}>
+                Privacy Policy
+              </Text>
+            </Pressable>
           </ScrollView>
         </View>
       </Modal>

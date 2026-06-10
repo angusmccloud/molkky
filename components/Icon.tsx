@@ -17,6 +17,10 @@ const Icon = (props: IconProps) => {
     // Default to the friends icon if we get one that doesn't exist
     iconName = allIcons.find((icon) => icon.iconName === 'friends');
   }
+  // If even the 'friends' fallback is missing, render nothing
+  if (!iconName) {
+    return null;
+  }
 
   if(iconName.type === 'Image') {
     return (
@@ -24,39 +28,39 @@ const Icon = (props: IconProps) => {
     )
   } else if (iconName.type === 'Ionicons') {
     return (
-      <Ionicons name={iconName.name} size={size} color={color} {...restOfProps} />
+      <Ionicons name={iconName.name as React.ComponentProps<typeof Ionicons>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'FontAwesome5') {
     return (
-      <FontAwesome5 name={iconName.name} size={size} color={color} {...restOfProps} />
+      <FontAwesome5 name={iconName.name as React.ComponentProps<typeof FontAwesome5>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'FontAwesome6') {
     return (
-      <FontAwesome6 name={iconName.name} size={size} color={color} {...restOfProps} />
+      <FontAwesome6 name={iconName.name as React.ComponentProps<typeof FontAwesome6>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'MaterialCommunityIcons') {
     return (
-      <MaterialCommunityIcons name={iconName.name} size={size} color={color} {...restOfProps} />
+      <MaterialCommunityIcons name={iconName.name as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'EvilIcons') {
     return (
-      <EvilIcons name={iconName.name} size={size} color={color} {...restOfProps} />
+      <EvilIcons name={iconName.name as React.ComponentProps<typeof EvilIcons>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'SimpleLineIcons') {
     return (
-      <SimpleLineIcons name={iconName.name} size={size} color={color} {...restOfProps} />
+      <SimpleLineIcons name={iconName.name as React.ComponentProps<typeof SimpleLineIcons>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'MaterialIcons') {
     return (
-      <MaterialIcons name={iconName.name} size={size} color={color} {...restOfProps} />
+      <MaterialIcons name={iconName.name as React.ComponentProps<typeof MaterialIcons>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'AntDesign') {
     return (
-      <AntDesign name={iconName.name} size={size} color={color} {...restOfProps} />
+      <AntDesign name={iconName.name as React.ComponentProps<typeof AntDesign>['name']} size={size} color={color} {...restOfProps} />
     );
   } else if (iconName.type === 'FontAwesome') {
     return (
-      <FontAwesome name={iconName.name} size={size} color={color} {...restOfProps} />
+      <FontAwesome name={iconName.name as React.ComponentProps<typeof FontAwesome>['name']} size={size} color={color} {...restOfProps} />
     );
   }
 
@@ -69,7 +73,15 @@ export default Icon;
 // As we need more icons, add the conversion from friendly-names to Ionicons names here
 // Controlling by user-friendly names so if we switch from Ionicons to Awesome, etc... We just change this file
 // https://icons.expo.fyi/
-export const allIcons = [
+interface IconDefinition {
+  type: string;
+  name: string;
+  iconName: string;
+  label: string;
+  source?: any;
+}
+
+export const allIcons: IconDefinition[] = [
   // Model for Icon object:
   // Type = Image, Ionicons, FontAwesome5, MaterialCommunityIcons, or another VectorIcon library
   // Name = name of icon from library
