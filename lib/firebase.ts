@@ -7,8 +7,9 @@ import { getReactNativePersistence } from 'firebase/auth';
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
 import firebaseConfig from '@/constants/firebaseConfig';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase. The app instance is exported for SDKs that bind to an
+// explicit app (e.g. firebase/functions in services/purchaseValidation.ts).
+export const app = initializeApp(firebaseConfig);
 
 // Auth persistence.
 // `@react-native-async-storage/async-storage` v3 deprecates the default-export

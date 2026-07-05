@@ -24,7 +24,18 @@ service cloud.firestore {
     // ---- games ------------------------------------------------------------
 
     function gameFieldsValid(d) {
-      return d.uid is string
+      // Top-level key allowlist (mirrors userFieldsValid below). This is every
+      // field the client has EVER written to game docs: the Game type minus
+      // the local-only fields stripped by services/cloudGames.ts
+      // (syncStatus, localUpdatedAt). `id` is in the list because the payload
+      // carries it (cloudUpsertGame doesn't strip it, and the pre-offline
+      // client's updates spread the fetched doc — id included — back in), and
+      // update rules validate the MERGED doc, so legacy docs need it allowed.
+      return d.keys().hasOnly([
+          'id', 'uid', 'players', 'rules', 'scores', 'gameStatus', 'gameRound',
+          'turns', 'whichPlayersTurn', 'winningPlayerId', 'createdAt', 'updatedAt',
+        ])
+        && d.uid is string
         && d.players is list && d.players.size() > 0 && d.players.size() <= 64
         && d.scores is list && d.scores.size() <= 64
         // Mölkky games are short; cap turns well above any real game to bound
@@ -59,7 +70,20 @@ service cloud.firestore {
     // ---- users ------------------------------------------------------------
 
     function userFieldsValid(d) {
-      return d.email is string
+      // Top-level key allowlist so a compromised client can't stash arbitrary
+      // extra fields on its user doc. NOTE: any legacy docs carrying fields
+      // outside this list would need a one-time cleanup BEFORE these rules
+      // deploy, or their next full-doc write will be rejected.
+      //
+      // removeAds / removeAdsInfo stay in the allowlist because UPDATE rules
+      // validate the MERGED document — a paying user's doc contains them —
+      // but they carry NO per-field shape checks here: they are written
+      // exclusively by the `validatePurchase` Cloud Function via the Admin
+      // SDK (which bypasses rules) with a server-side shape (transactionId,
+      // originalTransactionId, environment, purchaseDate, validatedAt), and
+      // the create/update guards below make them immutable to clients.
+      return d.keys().hasOnly(['email', 'name', 'friends', 'createdAt', 'removeAds', 'removeAdsInfo'])
+        && d.email is string
         && d.name is string
         && d.friends is list && d.friends.size() <= 1000
         && d.createdAt is string;
@@ -68,9 +92,18 @@ service cloud.firestore {
     match /users/{userId} {
       // Read/write only your own user document. No list/query of the collection.
       allow get: if isSignedIn() && request.auth.uid == userId;
-      allow create, update: if isSignedIn()
+      // removeAds / removeAdsInfo are server-written only (Cloud Function
+      // `validatePurchase`, Admin SDK): a create may not include them, and an
+      // update may not touch them — so clients can neither grant themselves
+      // the entitlement nor clobber a server-validated one.
+      allow create: if isSignedIn()
         && request.auth.uid == userId
-        && userFieldsValid(request.resource.data);
+        && userFieldsValid(request.resource.data)
+        && !request.resource.data.keys().hasAny(['removeAds', 'removeAdsInfo']);
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && userFieldsValid(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['removeAds', 'removeAdsInfo']);
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 

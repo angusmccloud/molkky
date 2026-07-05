@@ -5,12 +5,13 @@ import uuid from 'react-native-uuid';
 // Storage keys
 // ----------------------------------------------------------------------------
 
-export const STORAGE_KEYS = {
+const STORAGE_KEYS = {
   games: '@molkky/games',
   friends: '@molkky/friends',
   syncQueue: '@molkky/syncQueue',
   identity: '@molkky/identity',
   meta: '@molkky/meta',
+  entitlements: '@molkky/entitlements',
 } as const;
 
 // ----------------------------------------------------------------------------
@@ -88,6 +89,35 @@ export interface Identity {
 export interface MetaState {
   lastSyncedAt: number | null;
   lastSyncError: string | null;
+}
+
+/** Receipt-ish details kept alongside the remove-ads flag so the cloud
+ * entitlement (users/{uid}.removeAds) can be claimed from local state alone
+ * via the server-side `validatePurchase` Cloud Function. */
+export interface RemoveAdsInfo {
+  productId: string;
+  transactionId: string;
+  platform: string;
+  purchasedAt: string;
+  /**
+   * Firebase uid that was signed in when the purchase was granted. LOCAL-ONLY
+   * (never sent to the cloud): kept for history/debugging of which account
+   * originally claimed the purchase. Absent for grants made while signed out
+   * or recorded before this field existed.
+   */
+  ownerUid?: string;
+  /**
+   * The StoreKit 2 signed transaction (JWS) as returned by expo-iap
+   * (`purchase.purchaseToken`). LOCAL-ONLY: stored so a purchase made while
+   * signed out can be claimed on the cloud account later — PurchaseContext
+   * sends it to the `validatePurchase` Cloud Function on sign-in.
+   */
+  jws?: string;
+}
+
+export interface Entitlements {
+  removeAds: boolean;
+  removeAdsInfo?: RemoveAdsInfo;
 }
 
 // ----------------------------------------------------------------------------
@@ -342,14 +372,6 @@ export const getQueue = async (): Promise<SyncOp[]> => {
   return readJSON<SyncOp[]>(STORAGE_KEYS.syncQueue, []);
 };
 
-export const setQueue = async (queue: SyncOp[]): Promise<void> => {
-  // Guarded so a wholesale queue replace is serialized against concurrent
-  // enqueue/remove/retry/rotate mutations on the same queue blob.
-  return withLock(STORAGE_KEYS.syncQueue, async () => {
-    await writeJSON(STORAGE_KEYS.syncQueue, queue);
-  });
-};
-
 export const enqueueOp = async (op: Omit<SyncOp, 'id' | 'retries' | 'createdAt'>): Promise<SyncOp> => {
   // Guarded: atomic read->dedupe->append->write so concurrent enqueues (and the
   // processQueue remove/rotate) can't read the same blob and drop one another's
@@ -441,6 +463,61 @@ export const setMeta = async (meta: Partial<MetaState>): Promise<void> => {
 };
 
 // ----------------------------------------------------------------------------
+// Entitlements (in-app purchases)
+// ----------------------------------------------------------------------------
+//
+// The "remove ads" purchase is local-first like everything else: this flag is
+// the source of truth for the UI, and Firestore (users/{uid}.removeAds) is a
+// backup that lets the entitlement follow the account across devices — see
+// contexts/PurchaseContext.tsx and services/backfill.ts.
+
+// Change notifications so the PurchaseContext can react when something other
+// than the purchase flow grants the entitlement (e.g. the login backfill
+// pulling `removeAds` down from the cloud). Mirrors cloudSync's subscriber set.
+const entitlementSubscribers = new Set<() => void>();
+
+export const subscribeToEntitlements = (cb: () => void): (() => void) => {
+  entitlementSubscribers.add(cb);
+  return () => {
+    entitlementSubscribers.delete(cb);
+  };
+};
+
+const notifyEntitlementsChanged = () => {
+  for (const cb of entitlementSubscribers) {
+    try {
+      cb();
+    } catch (e) {
+      console.log('[localStore] entitlement subscriber error', e);
+    }
+  }
+};
+
+export const getEntitlements = async (): Promise<Entitlements> => {
+  return readJSON<Entitlements>(STORAGE_KEYS.entitlements, { removeAds: false });
+};
+
+export const setRemoveAdsEntitlement = async (
+  removeAds: boolean,
+  info?: RemoveAdsInfo,
+): Promise<Entitlements> => {
+  // Guarded: atomic read->merge->write so two concurrent grants (purchase
+  // callback + login backfill) don't clobber each other's fields.
+  const next = await withLock(STORAGE_KEYS.entitlements, async () => {
+    const current = await getEntitlements();
+    const merged: Entitlements = {
+      ...current,
+      removeAds,
+      removeAdsInfo: info ?? current.removeAdsInfo,
+    };
+    await writeJSON(STORAGE_KEYS.entitlements, merged);
+    return merged;
+  });
+  notifyEntitlementsChanged();
+  return next;
+};
+
+// ----------------------------------------------------------------------------
 // Util
 // ----------------------------------------------------------------------------
 
@@ -450,6 +527,10 @@ export const newLocalId = (): string => String(uuid.v4());
  * Wipe all per-user data from this device (games, friends, pending sync queue,
  * sync meta). The stable local identity is preserved so the device can keep
  * playing as a guest afterwards. Used when deleting an account.
+ *
+ * Entitlements (the remove-ads purchase) are deliberately NOT cleared: the
+ * purchase is scoped to the user's Apple ID / Google account, not to the
+ * deleted app account, so it survives account deletion.
  */
 export const clearLocalUserData = async (): Promise<void> => {
   await Promise.all([

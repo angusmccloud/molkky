@@ -1,12 +1,12 @@
 import React from "react";
-import { Image } from "react-native";
+import { ColorValue, Image } from "react-native";
 import { Ionicons, FontAwesome5, FontAwesome6, FontAwesome, MaterialCommunityIcons, EvilIcons, SimpleLineIcons, MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { useTheme } from "react-native-paper";
 
 interface IconProps {
   name: string;
   size?: number;
-  color?: string;
+  color?: ColorValue;
 }
 
 const Icon = (props: IconProps) => {
@@ -91,9 +91,6 @@ export const allIcons: IconDefinition[] = [
   { type: "MaterialIcons", name: "search", iconName: "search", label: "Search" },
   { type: "MaterialIcons", name: "location-on", iconName: "places", label: "Location" },
   { type: "MaterialCommunityIcons", name: "stairs", iconName: "cellar", label: "cellar" },
-  { type: "MaterialCommunityIcons", name: "size-xl", iconName: "x", label: "x" },
-  { type: "MaterialCommunityIcons", name: "size-xxl", iconName: "xx", label: "xx" },
-  { type: "MaterialCommunityIcons", name: "size-xxxl", iconName: "xxx", label: "xxx" },
   { type: 'FontAwesome5', name: 'user-friends', iconName: 'friends', label: 'Friends' },
   { type: "MaterialIcons", name: "family-restroom", iconName: "family", label: "Family" },
   { type: "FontAwesome5", name: "cocktail", iconName: "newCouples", label: "New Couples" },

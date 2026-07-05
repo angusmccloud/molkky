@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Image, Pressable, Platform } from 'react-native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { View, ScrollView, Image, Pressable } from 'react-native';
 import Text, { TextSizes } from '@/components/Text';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
+import useBottomContentInset from '@/hooks/useBottomContentInset';
 import useDeviceDimensions from '@/hooks/useDeviceDimensions';
 import Modal from '@/components/Modal';
 const formation = require('@/assets/images/formation.png');
@@ -20,8 +20,9 @@ export default function RulesScreen() {
   const dimensions = useDeviceDimensions();
   const { width, height } = dimensions;
   const [modalVisible, setModalVisible] = useState(false);
-  const tabBarHeight = useBottomTabBarHeight();
-  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
+  // iOS scrolls under the absolute tab bar; the ad banner floats above the
+  // tab bar on both platforms (0 when hidden) — pad past both.
+  const bottomInset = useBottomContentInset();
 
   return (
     <PageWrapper>

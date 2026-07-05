@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { View, Pressable, StyleSheet, FlatList, ListRenderItemInfo, Platform } from 'react-native';
+import { View, Pressable, StyleSheet, FlatList, ListRenderItemInfo } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Portal, Dialog, useTheme } from 'react-native-paper';
 import Text, { TextSizes } from '@/components/Text';
 import Avatar from '@/components/Avatar';
@@ -11,6 +10,7 @@ import Button from '@/components/Button';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import Divider from '@/components/Divider';
 import PageWrapper from '@/components/PageWrapper';
+import useBottomContentInset from '@/hooks/useBottomContentInset';
 import typography from '@/constants/Typography';
 import { AuthContext } from '@/contexts/AuthContext';
 import { getAllUsergames } from '@/services/games';
@@ -44,11 +44,9 @@ const StatsScreen: React.FC = () => {
   if (!authContext) throw new Error('AuthContext must be used within an AuthProvider');
   const { effectiveUid, friends: localFriends, removeFriend, dataVersion } = authContext;
 
-  // The tab bar is `position: 'absolute'` on iOS so content scrolls under
-  // it. Pad the bottom of the list so the last item can be scrolled fully
-  // into view above the tab bar.
-  const tabBarHeight = useBottomTabBarHeight();
-  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
+  // Pad the bottom of the list past the (iOS-absolute) tab bar and the
+  // floating ad banner so the last item can be scrolled fully into view.
+  const bottomInset = useBottomContentInset();
 
   // Only show the full-screen "Loading Stats..." spinner on the very first
   // load. Later recalculations (tab refocus, cloud pull) refresh silently so
@@ -198,7 +196,7 @@ const StatsScreen: React.FC = () => {
           <Dialog.Title>Remove friend?</Dialog.Title>
           <Dialog.Content>
             <Text>
-              {`${friendToRemove?.name ?? ''} will be removed from your friends list. They've played 0 games so this won't affect any stats.`}
+              {`${friendToRemove?.name ?? ''} will be removed from your friends list. This friend hasn't played any games yet, so this won't affect any stats.`}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>

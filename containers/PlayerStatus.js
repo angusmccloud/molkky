@@ -46,9 +46,6 @@ const PlayerStatus = (props) => {
           </View>
           <View style={{ flexDirection: 'column' }}>
             <View style={styles.playerHeader}>
-              {/* {(winningPlayerId && winningPlayerId === player.id && gameStatus !== 'inProgress') && (
-                <Icon name='winner' color={theme.colors.primary} size={typography.fontSizeXL} />
-              )} */}
               {(whichPlayersTurn === player.id && gameStatus === 'inProgress' && !isEliminated) && (
                 <Icon name='collapsed' color={theme.colors.primary} size={typography.fontSizeXL} />
               )}

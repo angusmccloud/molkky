@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from "react-native";
 import { useTheme, MD3Theme } from "react-native-paper";
 import { MultiSelect } from 'react-native-element-dropdown';
-import Text, { TextSizes } from '@/components/Text';
 import typography from '@/constants/Typography';
 import useReusableStyles from '@/hooks/useReusableStyles';
 
@@ -26,21 +25,8 @@ const MultiselectInput = (props: MultiselectInputProps) => {
   const styles = useStyles(theme);
   const [isFocus, setIsFocus] = useState(false);
 
-  const renderLabel = (label: string) => {
-    if (isFocus) {
-      return (
-        <View style={styles.dropdownLabelWrapper}>
-          <Text style={[isFocus && { color: theme.colors.primary }]} size={TextSizes.XS}>
-            {label}
-          </Text>
-        </View>
-      );
-    }
-    return null;
-  };
   return (
     <View style={styles.dropdownWrapper}>
-      {/* {renderLabel(placeholder)} */}
       <MultiSelect
         style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
         placeholderStyle={styles.dropdownPlaceholder}

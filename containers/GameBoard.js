@@ -4,7 +4,6 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import Share from 'react-native-share';
 import { useTheme } from 'react-native-paper';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Button from '@/components/Button';
 import Text from '@/components/Text';
 import IconButton from '@/components/IconButton';
@@ -12,6 +11,7 @@ import PlayerStatus from './PlayerStatus';
 import AddPlayerModal from './AddPlayerModal';
 import ActivityIndicator from '@/components/ActivityIndicator';
 import { getGame, updateGame, createGame } from '@/services/games';
+import useBottomContentInset from '@/hooks/useBottomContentInset';
 import useStyles from './GameBoardStyles';
 import typography from '@/constants/Typography';
 
@@ -25,12 +25,9 @@ const GameBoard = (props) => {
 
   const theme = useTheme();
   const styles = useStyles(theme);
-  // On iOS the tab bar is `position: 'absolute'` (see app/(tabs)/_layout.tsx)
-  // so screen content extends UNDER it. Add the tab bar's height as bottom
-  // padding so the action buttons sit above the bar. On Android the tab bar
-  // is in normal layout flow, so no extra padding is needed.
-  const tabBarHeight = useBottomTabBarHeight();
-  const bottomInset = Platform.OS === 'ios' ? tabBarHeight : 0;
+  // Pad the bottom past the (iOS-absolute) tab bar and the floating ad
+  // banner so the action buttons sit above both.
+  const bottomInset = useBottomContentInset();
 
   // All hooks must run before any early return (rules-of-hooks) — the
   // `if (!gameId) return null` guard lives below this effect. The effect

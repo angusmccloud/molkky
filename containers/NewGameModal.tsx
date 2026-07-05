@@ -133,9 +133,7 @@ const NewGameModal = (props: { showModal: boolean; closeModal: () => void; onGam
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      // console.log('-- gameData --', gameData);
       const newGame = await createGame(gameData);
-      console.log('-- newGame (in Modal) --', newGame);
       if(newGame) {
         onGameCreated(newGame);
         resetModal();

@@ -1,0 +1,5 @@
+# Compiled output (built by the predeploy hook / npm run build)
+lib/
+
+# NOTE: certs/ is deliberately NOT ignored — the Apple root certificates must
+# ship with the deployed function (verifiers.ts reads them at runtime).

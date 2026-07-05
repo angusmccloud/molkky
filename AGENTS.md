@@ -4,9 +4,9 @@ Mölkky Scores is a React Native / Expo app for scoring the Finnish lawn game M�
 
 ## Tech stack
 
-- Expo SDK 53 (upgrade to 55 in progress), `expo-router` v5 (file-based routing under `app/`)
-- React Native 0.79, React 19, TypeScript (strict)
-- Firebase v11 — Auth (with AsyncStorage persistence) + Firestore, initialized in `lib/firebase.ts`
+- Expo SDK 57, `expo-router` v57 (file-based routing under `app/`; expo-router ships its own forked react-navigation — never import `@react-navigation/*` directly)
+- React Native 0.86, React 19.2, TypeScript (strict)
+- Firebase v12 — Auth (with AsyncStorage persistence) + Firestore, initialized in `lib/firebase.ts`
 - `react-native-paper` (MD3) for UI primitives; themes live in `constants/Colors.ts`
 - `react-native-reanimated` for animation
 - `@react-native-async-storage/async-storage` for local persistence
@@ -21,11 +21,11 @@ Mölkky Scores is a React Native / Expo app for scoring the Finnish lawn game M�
 - `app/` — expo-router routes. `app/_layout.tsx` wraps the app in `PaperProvider` + `AuthProvider`. Tab screens live in `app/(tabs)/` (`index.tsx`, `rules.tsx`, `stats.tsx`).
 - `components/` — reusable UI primitives (`Button`, `Text`, `Modal`, `TextInput`, etc.). Mostly thin wrappers around `react-native-paper`. Mix of `.tsx` and legacy `.js`.
 - `containers/` — screen-level composed views with business logic (`GameBoard.js`, `NewGameModal.tsx`, `AuthModal.js`, `PlayerStatus.js`). Style files colocated as `*Styles.js`.
-- `contexts/` — React Contexts. `AuthContext.tsx` owns the Firebase auth subscription and exposes `user`, `signIn`, `signUp`, `signOut`, `addFriends`.
-- `services/` — data layer. `games.js`, `users.js`, `auth.js` wrap Firestore/Auth calls. All Firestore access should go through here, not directly from components.
-- `hooks/` — custom hooks (`useColorScheme`, `useDeviceDimensions`, `useReusableStyles`, `useThemeColor`).
-- `lib/` — third-party client initialization. Currently just `firebase.ts` (exports `auth` and `db`).
-- `constants/` — `Colors.ts` (light/dark Paper themes), `Typography.js`, `firebaseConfig.js`.
+- `contexts/` — React Contexts. `AuthContext.tsx` owns the Firebase auth subscription and exposes `user`, `signIn`, `signUp`, `signOut`, `addFriends`. `PurchaseContext.tsx` owns IAP purchase/entitlement state (remove-ads). `AdBannerContext.tsx` holds the measured ad banner height.
+- `services/` — data layer. `games.ts`, `users.ts`, `auth.js` wrap Firestore/Auth calls (plus `localStore.ts`, `syncQueue.ts`, `cloudSync.ts` and friends for offline-first sync). All Firestore access should go through here, not directly from components.
+- `hooks/` — custom hooks (`useColorScheme`, `useDeviceDimensions`, `useReusableStyles`, `useAdBannerHeight`, `useBottomContentInset` — the hook screens use for bottom padding; `useAdBannerHeight` feeds it).
+- `lib/` — third-party client initialization: `firebase.ts` (exports `auth` and `db`), `ads.ts`, `iap.ts`, `googleSignIn.ts`.
+- `constants/` — `Colors.ts` (light/dark Paper themes), `Typography.js`, `firebaseConfig.js`, `ads.ts`, `iap.ts`, `googleSignInConfig.ts`, `support.ts`.
 - `assets/` — fonts and images.
 
 ## How to run
@@ -43,7 +43,7 @@ Mölkky Scores is a React Native / Expo app for scoring the Finnish lawn game M�
 2. **Offline-first.** Local state is the source of truth during a game. Never block UI on a network call. Firebase is for backup/sync only — writes happen in the background, and the user must be able to keep scoring even with no connection. Players are in fields with poor reception; that is the primary use case.
 3. **Guest play is allowed.** Login is optional. When the user is not signed in, the app must still be playable, and the UI must clearly indicate that data is not being backed up. Signing in triggers cloud sync.
 4. **Use `@/` imports.** No relative `../../` paths.
-5. **No AWS / Amplify.** Amplify has been removed and replaced with Firebase. Do not introduce `aws-amplify`, `@aws-amplify/*`, `aws-exports`, or any Amplify-shaped APIs. The leftover `amplify/` and `src/` directories are legacy and slated for deletion — do not add to them.
+5. **No AWS / Amplify.** Amplify has been removed and replaced with Firebase. Do not introduce `aws-amplify`, `@aws-amplify/*`, `aws-exports`, or any Amplify-shaped APIs.
 
 ## Game domain glossary
 

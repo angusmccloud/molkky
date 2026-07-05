@@ -3,6 +3,7 @@ import { View, FlatList, Pressable, StyleSheet } from 'react-native';
 import { Menu, Divider, useTheme } from 'react-native-paper';
 import Text, { TextSizes } from '@/components/Text';
 import IconButton from '@/components/IconButton';
+import useBottomContentInset from '@/hooks/useBottomContentInset';
 import typography from '@/constants/Typography';
 import type { Game } from '@/services/localStore';
 
@@ -147,6 +148,9 @@ interface ListProps {
 const GameHistoryList = ({ games, onViewGame, onPlayAgain, onDeleteGame }: ListProps) => {
   const theme = useTheme();
   const styles = useStyles(theme);
+  // Pad the list past the (iOS-absolute) tab bar and the floating ad banner
+  // so the last game isn't hidden behind them.
+  const bottomInset = useBottomContentInset();
 
   // Most recent first.
   const sorted = [...games].sort((a, b) => {
@@ -158,7 +162,7 @@ const GameHistoryList = ({ games, onViewGame, onPlayAgain, onDeleteGame }: ListP
   return (
     <FlatList
       style={styles.list}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, { paddingBottom: 4 + bottomInset }]}
       data={sorted}
       keyExtractor={(item) => item.id}
       ItemSeparatorComponent={() => <Divider />}
@@ -189,7 +193,7 @@ const useStyles = (theme: any) =>
       width: '100%',
     },
     listContent: {
-      paddingVertical: 4,
+      paddingTop: 4,
       flexGrow: 1,
     },
     row: {

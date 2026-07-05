@@ -5,6 +5,8 @@ import {
   reassignGamesOwner,
   getFriends,
   setFriends,
+  getEntitlements,
+  setRemoveAdsEntitlement,
   type Game,
   type Friend,
 } from '@/services/localStore';
@@ -14,7 +16,11 @@ import {
   processQueue,
 } from '@/services/syncQueue';
 import { pullAndMergeGames } from '@/services/cloudSync';
-import { findOrCreateCloudUser } from '@/services/cloudUsers';
+import {
+  findOrCreateCloudUser,
+  cloudSetUserName,
+  type CloudUserRecord,
+} from '@/services/cloudUsers';
 
 /**
  * On sign-in we want three things:
@@ -41,8 +47,9 @@ export const runLoginBackfill = async (firebaseUser: {
   // Ensure cloud user record exists. Errors here shouldn't block anything —
   // local data is still safe. We swallow + log.
   let cloudFriends: Friend[] = [];
+  let cloudUser: CloudUserRecord | null = null;
   try {
-    const cloudUser = await findOrCreateCloudUser({
+    cloudUser = await findOrCreateCloudUser({
       userId: uid,
       email,
       name: displayName,
@@ -50,6 +57,45 @@ export const runLoginBackfill = async (firebaseUser: {
     cloudFriends = (cloudUser.friends || []) as Friend[];
   } catch (e) {
     console.log('[backfill] findOrCreateCloudUser failed (continuing offline)', e);
+  }
+
+  // Name self-heal: Apple only sends the user's name on the very FIRST
+  // authorization, and the auth service persists it via updateProfile AFTER
+  // onAuthStateChanged fired — so the first sign-in's cloud doc was created
+  // with the email (or '') as its name. If auth now has a real display name
+  // and the cloud doc is still on its fallback, patch it up. Best-effort and
+  // non-blocking: a real (user-chosen) cloud name is never overwritten.
+  if (
+    cloudUser &&
+    displayName &&
+    displayName !== cloudUser.name &&
+    (!cloudUser.name || cloudUser.name === cloudUser.email)
+  ) {
+    void cloudSetUserName(uid, displayName).catch((e) => {
+      console.log('[backfill] cloud name self-heal failed (non-fatal)', e);
+    });
+  }
+
+  // Self-healing remove-ads entitlement: PULL-DOWN ONLY. A reinstalled or
+  // second device grants the local flag from the account's cloud doc. The
+  // opposite direction (local purchase → cloud) does NOT happen here anymore:
+  // removeAds is server-written only — Firestore rules reject client writes —
+  // so the claim goes through the `validatePurchase` Cloud Function, driven
+  // by PurchaseContext (purchase time + claim-on-sign-in effect). Skipped
+  // when the cloud doc couldn't be read.
+  if (cloudUser) {
+    try {
+      const entitlements = await getEntitlements();
+      if (cloudUser.removeAds && !entitlements.removeAds) {
+        // Cloud says purchased → grant locally. The cloud doc's removeAdsInfo
+        // now has the SERVER's shape (originalTransactionId/environment/...),
+        // not the local RemoveAdsInfo shape, so only the flag is copied down
+        // (any existing local info is preserved by setRemoveAdsEntitlement).
+        await setRemoveAdsEntitlement(true, undefined);
+      }
+    } catch (e) {
+      console.log('[backfill] remove-ads entitlement sync failed (non-fatal)', e);
+    }
   }
 
   // 1) Reassign local-owned games to this uid.

@@ -1,13 +1,6 @@
-// Optionally import the services that you want to use
-// import {...} from 'firebase/auth';
-// import {...} from 'firebase/database';
-// import {...} from 'firebase/firestore';
-// import {...} from 'firebase/functions';
-// import {...} from 'firebase/storage';
-
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase web-app configuration. The apiKey is an identifier, not a secret —
+// it is public by design; data access is protected by Firestore security rules
+// and Firebase Auth (see LAUNCH_CHECKLIST.md §B).
 const firebaseConfig = {
   apiKey: "AIzaSyARoOF1DryNPSJAhl-N42kO3jSfw7iDqHI",
   authDomain: "molkky-scores-6ee0d.firebaseapp.com",

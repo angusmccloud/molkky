@@ -5,47 +5,15 @@ import {
   type Friend,
 } from '@/services/localStore';
 import { enqueueUpdateFriends } from '@/services/syncQueue';
-import {
-  findOrCreateCloudUser,
-  cloudGetUser,
-  cloudDeleteUser,
-  type CloudUserRecord,
-  type FindOrCreateUserInput,
-} from '@/services/cloudUsers';
+import { cloudDeleteUser, cloudSetUserName } from '@/services/cloudUsers';
 
 /**
  * Local-first users API.
  *
  * The user's "friends" list now lives locally — Firestore is just a backup
- * destination for it. `findOrCreateUser` still hits Firestore on sign-in (so
- * the user document exists), but anything that updates the friends list
- * writes locally and enqueues a sync.
+ * destination for it. Anything that updates the friends list writes locally
+ * and enqueues a sync.
  */
-
-export interface UpdateFriendsResult {
-  friends: Friend[];
-  ok: boolean;
-}
-
-export const getLocalFriends = async (): Promise<Friend[]> => {
-  return localGetFriends();
-};
-
-/**
- * Replace the friends list locally and enqueue a cloud sync.
- * If `userId` is provided (i.e. user is signed in or recently was), the queue
- * entry will target that uid.
- */
-export const setLocalFriends = async (
-  friends: Friend[],
-  userId?: string | null,
-): Promise<UpdateFriendsResult> => {
-  await localSetFriends(friends);
-  if (userId) {
-    void enqueueUpdateFriends(userId, friends);
-  }
-  return { friends, ok: true };
-};
 
 /**
  * Add new friends to the local list (deduped by id) and enqueue a sync.
@@ -77,30 +45,9 @@ export const removeFriendLocal = async (
   return next;
 };
 
-/**
- * Backwards-compatible name. Same as setLocalFriends.
- */
-export const updateUserFriends = async (
-  userId: string,
-  friends: Friend[],
-): Promise<boolean> => {
-  const res = await setLocalFriends(friends, userId);
-  return res.ok;
-};
-
 // ----------------------------------------------------------------------------
 // Sign-in helpers — these still hit Firestore (called from auth flows).
 // ----------------------------------------------------------------------------
-
-export const findOrCreateUser = async (
-  userInfo: FindOrCreateUserInput,
-): Promise<CloudUserRecord> => {
-  return findOrCreateCloudUser(userInfo);
-};
-
-export const getUser = async (userId: string): Promise<CloudUserRecord | null> => {
-  return cloudGetUser(userId);
-};
 
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
@@ -108,6 +55,24 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
     return true;
   } catch (e) {
     console.log('[users] deleteUser error', e);
+    return false;
+  }
+};
+
+/**
+ * Mirror the auth displayName to the user's cloud record. Best-effort: the
+ * login backfill self-heals a missed write on the next launch, so failures
+ * are logged and reported via the return value rather than thrown.
+ */
+export const setUserNameCloud = async (
+  userId: string,
+  name: string,
+): Promise<boolean> => {
+  try {
+    await cloudSetUserName(userId, name);
+    return true;
+  } catch (e) {
+    console.log('[users] setUserNameCloud error', e);
     return false;
   }
 };

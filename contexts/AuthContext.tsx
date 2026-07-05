@@ -5,6 +5,17 @@ import {
   signUpNewUser,
   signInUser,
   signOutUser,
+  signInWithApple as authSignInWithApple,
+  reauthenticateWithApple,
+  requestAppleAuthorizationCode,
+  revokeAppleToken,
+  linkAppleToCurrentUser,
+  signInWithGoogle as authSignInWithGoogle,
+  reauthenticateWithGoogle,
+  revokeGoogleAccess,
+  signOutGoogleNative,
+  linkGoogleToCurrentUser,
+  sendVerificationEmail,
   sendPasswordReset as authSendPasswordReset,
   reauthenticateCurrentUser,
   deleteCurrentAuthUser,
@@ -16,7 +27,7 @@ import {
   clearLocalUserData,
   type Friend,
 } from '@/services/localStore';
-import { addFriendsLocal, removeFriendLocal, deleteUser } from '@/services/users';
+import { addFriendsLocal, removeFriendLocal, deleteUser, setUserNameCloud } from '@/services/users';
 import { cloudDeleteAllUserGames } from '@/services/cloudGames';
 import { runLoginBackfill } from '@/services/backfill';
 import {
@@ -43,12 +54,12 @@ import {
 // `extends FirebaseUser` would therefore be a lie — the type would promise
 // methods that don't exist at runtime. We instead Pick exactly the FirebaseUser
 // data fields that survive the spread AND are read by consumers (grepped across
-// app/ components/ containers/: `uid`, `email`, `displayName`, and
-// `providerData` — used by AuthModal). Add to this Pick if a consumer starts
-// reading another field.
+// app/ components/ containers/: `uid`, `email`, `displayName`, `providerData`,
+// and `emailVerified` — used by AuthModal). Add to this Pick if a consumer
+// starts reading another field.
 export type User = Pick<
   FirebaseUser,
-  'uid' | 'email' | 'displayName' | 'providerData'
+  'uid' | 'email' | 'displayName' | 'providerData' | 'emailVerified'
 > & {
   name?: string | null;
   friends?: Friend[];
@@ -97,14 +108,38 @@ interface AuthContextType {
 
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<boolean>;
+  /**
+   * Sign in (or up) with Apple via the native sheet. Throws on failure —
+   * including expo's ERR_REQUEST_CANCELED when the user dismisses the sheet,
+   * which callers should swallow silently.
+   */
+  signInWithApple: () => Promise<void>;
+  /**
+   * Sign in (or up) with Google via the native account picker. Same error
+   * contract as signInWithApple: throws, with code ERR_REQUEST_CANCELED on
+   * user dismissal.
+   */
+  signInWithGoogle: () => Promise<void>;
+  /**
+   * Link Apple/Google as an additional sign-in method on the current account
+   * (never removes existing providers — the user can then sign in with any of
+   * them). Throws; code ERR_REQUEST_CANCELED on user dismissal.
+   */
+  linkApple: () => Promise<void>;
+  linkGoogle: () => Promise<void>;
+  /** Re-send the address-verification email to the signed-in user. */
+  resendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
   /** Send a password-reset email to the given address. */
   sendPasswordReset: (email: string) => Promise<void>;
   /**
-   * Permanently delete the signed-in account: requires the current password,
-   * deletes all cloud data, the auth user, and this device's local data.
+   * Permanently delete the signed-in account: deletes all cloud data, the
+   * auth user, and this device's local data. Password accounts must pass the
+   * current password; Apple-only accounts pass nothing — a fresh Apple
+   * sign-in sheet is shown to reauthenticate (and the Apple token is revoked,
+   * per App Store rules).
    */
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
 
   /** Add friends locally. Syncs to cloud when signed in. */
   addFriends: (newFriends: Friend[]) => Promise<void>;
@@ -246,6 +281,99 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Re-sync the context user from auth.currentUser. Needed after operations
+  // that mutate the firebase user without firing onAuthStateChanged: the
+  // updateProfile dance after Apple's first sign-in, and provider linking
+  // (which changes providerData).
+  const refreshUserFromAuth = useCallback(() => {
+    const current = auth.currentUser;
+    if (current) {
+      setUser((prev) => ({
+        ...current,
+        name: current.displayName,
+        friends: prev?.friends,
+      }));
+    }
+  }, []);
+
+  const signInWithApple = async (): Promise<void> => {
+    setError(null);
+    try {
+      await authSignInWithApple();
+      // Apple only sends the user's name on the very first authorization, and
+      // the service persists it via updateProfile AFTER onAuthStateChanged has
+      // already fired (same timing as email sign-up). Refresh the context user
+      // so the name shows immediately instead of after the next app launch.
+      refreshUserFromAuth();
+      // Same timing problem for the CLOUD doc: the backfill's
+      // findOrCreateCloudUser ran (off onAuthStateChanged) before
+      // updateProfile landed, so a first sign-in's doc was created with the
+      // email as its name. Now that the profile is settled, push the real
+      // name up best-effort (setUserNameCloud logs its own failures; the
+      // backfill also self-heals this on the next cold launch).
+      const current = auth.currentUser;
+      if (current?.displayName) {
+        void setUserNameCloud(current.uid, current.displayName);
+      }
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Apple sign-in failed');
+      }
+      throw err;
+    }
+  };
+
+  const signInWithGoogle = async (): Promise<void> => {
+    setError(null);
+    try {
+      await authSignInWithGoogle();
+      // No post-sign-in profile fixup needed: Google's ID token carries name
+      // and email, and Firebase sets displayName before onAuthStateChanged.
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Google sign-in failed');
+      }
+      throw err;
+    }
+  };
+
+  const linkApple = async (): Promise<void> => {
+    setError(null);
+    try {
+      await linkAppleToCurrentUser();
+      // providerData changed — refresh so the UI sees the new provider.
+      refreshUserFromAuth();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Could not link Apple sign-in');
+      }
+      throw err;
+    }
+  };
+
+  const linkGoogle = async (): Promise<void> => {
+    setError(null);
+    try {
+      await linkGoogleToCurrentUser();
+      refreshUserFromAuth();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Could not link Google sign-in');
+      }
+      throw err;
+    }
+  };
+
+  const resendVerificationEmail = async (): Promise<void> => {
+    setError(null);
+    try {
+      await sendVerificationEmail();
+    } catch (err: any) {
+      setError(err?.message ?? 'Could not send verification email');
+      throw err;
+    }
+  };
+
   const signOut = async (): Promise<void> => {
     setError(null);
     try {
@@ -262,6 +390,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       await signOutUser();
+
+      // Clear the native Google session too, so the next Google sign-in
+      // shows the account picker instead of silently reusing the last
+      // account. No-op for non-Google users.
+      await signOutGoogleNative();
 
       // Friends are stored globally (one list per device, not per-uid) so
       // they'd leak to the next user. Clear them. They'll re-pull from the
@@ -288,15 +421,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const deleteAccount = async (password: string): Promise<void> => {
+  const deleteAccount = async (password?: string): Promise<void> => {
     setError(null);
     const current = auth.currentUser;
     if (!current) throw new Error('Not signed in');
     const uid = current.uid;
     try {
-      // Reauthenticate first — throws on a wrong password and is required by
-      // Firebase before deleting the account.
-      await reauthenticateCurrentUser(password);
+      // Reauthenticate first — required by Firebase before deleting the
+      // account. Accounts with a password provider confirm with their
+      // password (throws on a wrong one); social-only accounts confirm via a
+      // fresh native sign-in with their provider. Apple's reauth also yields
+      // the authorization code we need to revoke the Apple token below.
+      const providerIds = current.providerData.map((p) => p.providerId);
+      let appleAuthorizationCode: string | null = null;
+      if (providerIds.includes('password')) {
+        if (!password) throw new Error('Enter your password to confirm');
+        await reauthenticateCurrentUser(password);
+      } else if (providerIds.includes('apple.com')) {
+        appleAuthorizationCode = await reauthenticateWithApple();
+      } else if (providerIds.includes('google.com')) {
+        await reauthenticateWithGoogle();
+      } else {
+        throw new Error('Unsupported sign-in provider for account deletion');
+      }
+
+      // Apple token revocation (App Store Guideline 5.1.1(v)) applies to ANY
+      // account with Apple linked — including password accounts that just
+      // reauthenticated with their password, where the reauth above yielded
+      // no code. Run the Apple sheet purely to fetch an authorizationCode.
+      // Best-effort: if the user dismisses the sheet (ERR_REQUEST_CANCELED)
+      // or it fails, continue the deletion WITHOUT revocation — the user's
+      // intent is deletion, and it must not be blocked on this extra step.
+      if (providerIds.includes('apple.com') && appleAuthorizationCode === null) {
+        try {
+          appleAuthorizationCode = await requestAppleAuthorizationCode();
+        } catch (e) {
+          console.log(
+            '[AuthContext] Apple authorization for token revocation skipped (non-fatal)',
+            e,
+          );
+        }
+      }
 
       // Delete cloud data while still authenticated (security rules require it).
       //
@@ -325,6 +490,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         );
       }
 
+      // Revoke the Sign in with Apple token (App Store Guideline 5.1.1(v))
+      // while we're still signed in — revocation goes through Firebase and
+      // needs the auth user to exist. Best-effort: the user's intent is
+      // deletion, so a revocation hiccup shouldn't strand their account.
+      if (appleAuthorizationCode) {
+        try {
+          await revokeAppleToken(appleAuthorizationCode);
+        } catch (e) {
+          console.log('[AuthContext] Apple token revocation failed (non-fatal)', e);
+        }
+      }
+      // Likewise disconnect the app from the user's Google account whenever
+      // Google is linked — unlike Apple this needs no extra UI, it works off
+      // the native session (best-effort — revokeGoogleAccess swallows its own
+      // errors).
+      if (providerIds.includes('google.com')) {
+        await revokeGoogleAccess();
+      }
+
       // Cloud deletions succeeded — only now delete the auth account
       // (fires onAuthStateChanged → guest mode).
       await deleteCurrentAuthUser();
@@ -335,7 +519,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setPendingSyncCount(0);
       setSyncFailedCount(0);
     } catch (err: any) {
-      setError(err?.message ?? 'Account deletion failed');
+      // Dismissing the Apple confirmation sheet is a cancel, not a failure.
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(err?.message ?? 'Account deletion failed');
+      }
       throw err;
     }
   };
@@ -378,6 +565,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOnline,
         signUp,
         signIn,
+        signInWithApple,
+        signInWithGoogle,
+        linkApple,
+        linkGoogle,
+        resendVerificationEmail,
         signOut,
         sendPasswordReset,
         deleteAccount,

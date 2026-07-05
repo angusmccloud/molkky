@@ -1,50 +1,36 @@
-# Welcome to your Expo app 👋
+# Mölkky Scores
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Scorekeeping app for the Finnish throwing game [Mölkky](https://en.wikipedia.org/wiki/M%C3%B6lkky). Track turns, scores, misses, and eliminations across a game — built to work in a field with no cell reception.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- **Expo SDK 57** with **expo-router** (file-based routing under `app/`), React Native 0.86, React 19, TypeScript
+- **Firebase** Auth + Firestore, **offline-first**: local storage (AsyncStorage) is the source of truth during play; Firestore is the backup/sync target. Guest play works with no account.
+- **react-native-paper** (MD3) UI, wrapped by the primitives in `components/`
+- **AdMob** banner ads (`react-native-google-mobile-ads`, non-personalized) with a **remove-ads in-app purchase** (`expo-iap`)
+- **Cloud Functions** under `functions/` (Node 22, TypeScript): server-side App Store receipt validation for the remove-ads purchase (`validatePurchase`). Deploy with `firebase deploy --only functions` (requires the Blaze plan; deploy the function before the Firestore rules — see `LAUNCH_CHECKLIST.md` §B).
 
-   ```bash
-   npm install
-   ```
+## Development setup
 
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Requires Node 24 (via nvm) and, for iOS, Xcode 26.4+. The app uses native modules (ads, IAP, Google/Apple sign-in), so it needs a dev client — it does not run in Expo Go.
 
 ```bash
-npm run reset-project
+nvm use 24
+npm install
+npx expo run:ios     # builds the dev client and starts Metro
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Scripts
 
-## Learn more
+- `npm start` — Expo dev server (`--dev-client`)
+- `npm run tunnel` — dev server over a tunnel
+- `npm run ios` / `npm run android` — native build + run
+- `npm run web` — web via Metro
+- `npm run lint` — `expo lint`
+- `npm test` — Jest (jest-expo preset)
 
-To learn more about developing your project with Expo, look at the following resources:
+## More docs
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [`AGENTS.md`](./AGENTS.md) — architecture, conventions, and the critical rules (scoring engine, offline-first, guest play)
+- [`LAUNCH_CHECKLIST.md`](./LAUNCH_CHECKLIST.md) — the single pre-launch checklist: every manual step to App Store submission plus security hardening (Xcode, Firebase rules/App Check/API-key restriction, auth providers, App Store Connect, AdMob, testing)
+- [`BEFORE_ANDROID.md`](./BEFORE_ANDROID.md) — deferred work required before any Google Play release

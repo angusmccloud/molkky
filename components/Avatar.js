@@ -4,7 +4,6 @@ import { useTheme } from 'react-native-paper';
 import shuffleSeed from 'shuffle-seed';
 import { avatarColors } from '@/constants/Colors';
 import Text from '@/components/Text';
-// import ImageS3 from '../ImageS3/ImageS3';
 
 const Avatar = (props) => {
   const theme = useTheme();
@@ -14,7 +13,7 @@ const Avatar = (props) => {
   const [borderRadius, setBorderRadius] = useState(0);
   const [initials, setInitials] = useState('');
 
-  const { fileName, name = '', size = 36, variant = 'rounded', textSize = 24, bold = false, height } = props;
+  const { name = '', size = 36, variant = 'rounded', textSize = 24, bold = false, height } = props;
 
   useEffect(() => {
     const initialsArray = name.split(' ');
@@ -42,22 +41,6 @@ const Avatar = (props) => {
   const renderPlaceholder = (placeholderWidth, placeholderHeight, absolute) => {
     return renderInitials(placeholderWidth, borderRadius, staticBackground, staticTextColor, initials, textSize, bold, placeholderHeight, absolute)
   }
-
-  // if (fileName) {
-  //   // console.log('-- Avatar has File Name --', fileName, size, height, borderRadius);
-  //   return (
-  //     <>
-  //       <ImageS3
-  //         fileName={fileName}
-  //         width={size}
-  //         height={ height || size}
-  //         borderRadius={borderRadius}
-  //         placeholder={() => renderPlaceholder(size, height || size, true)}
-  //         variant={variant}
-  //       />
-  //     </>
-  //   );
-  // }
 
   return renderPlaceholder(size, height || size, false);
 }
