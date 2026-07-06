@@ -1,13 +1,14 @@
 import React, { useState, useRef, useContext, useEffect } from "react";
 import { View, Pressable, ScrollView, Linking } from "react-native";
 import { useTheme } from "react-native-paper";
+import { router } from "expo-router";
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getGoogleSignIn } from '@/lib/googleSignIn';
 import { isAppleSignInAvailable, isGoogleSignInAvailable } from '@/services/auth';
 import { exportUserData } from '@/services/dataExport';
 import { PurchaseContext } from '@/contexts/PurchaseContext';
 
-import { SUPPORT_URL, PRIVACY_POLICY_URL } from '@/constants/support';
+import { PRIVACY_POLICY_URL } from '@/constants/support';
 import typography from '@/constants/Typography';
 import Icon from '@/components/Icon';
 import Text from '@/components/Text';
@@ -1065,10 +1066,13 @@ const AuthModal = () => {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => Linking.openURL(SUPPORT_URL)}
+              onPress={() => {
+                closeModal();
+                router.push("/contact");
+              }}
               style={{ paddingBottom: 16, alignItems: "center" }}
               accessibilityRole="link"
-              accessibilityLabel="Open the contact and support page"
+              accessibilityLabel="Open the contact us form"
             >
               <Text size="S" color={theme.colors.primary}>
                 Contact / Support

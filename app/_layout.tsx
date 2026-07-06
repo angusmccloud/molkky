@@ -61,6 +61,22 @@ export default function RootLayout() {
               <PurchaseProvider>
                 <Stack>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="contact"
+                    options={{
+                      title: 'Contact Us',
+                      headerStyle: {
+                        backgroundColor:
+                          colorScheme === 'dark'
+                            ? darkTheme.colors.primary
+                            : lightTheme.colors.primary,
+                      },
+                      headerTintColor:
+                        colorScheme === 'dark'
+                          ? darkTheme.colors.onPrimary
+                          : lightTheme.colors.onPrimary,
+                    }}
+                  />
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <StatusBar style="auto" />

@@ -25,12 +25,12 @@ before public release (defense-in-depth, not a hard blocker).
       SDK; iOS device builds unblocked).
 - [x] **Node 24 via nvm** is the project default (`nvm use 24`). Node 22.7.0 fails
       RN 0.86's engine check.
-- [ ] **Rebuild the dev client** — three native modules now require a fresh binary
+- [x] **Rebuild the dev client** — three native modules now require a fresh binary
       (`react-native-google-mobile-ads`, `expo-iap`, and the Google-signin
       `iosUrlScheme`): `npx expo prebuild --clean -p ios` then `npx expo run:ios` (or
       `npm run ios:device`). Until then ads/purchases/Google-signin are gracefully
       unavailable.
-- [ ] **Commit the branch** — everything is uncommitted, including files the build
+- [x] **Commit the branch** — everything is uncommitted, including files the build
       imports (`constants/googleSignInConfig.ts`, `lib/googleSignIn.ts`, `functions/`).
       A clean checkout won't build until these are committed.
 
@@ -95,7 +95,7 @@ before public release (defense-in-depth, not a hard blocker).
       via Firebase `revokeAccessToken`), and revocation requires them — without them it
       fails silently (deletion proceeds, token never revoked → non-compliant). This is
       why §F still calls for verifying revocation actually succeeds.
-- [ ] Apple Developer → Identifiers → `com.connortyrrell.molkky`: confirm the **Sign In
+- [x] Apple Developer → Identifiers → `com.connortyrrell.molkky`: confirm the **Sign In
       with Apple capability** is enabled on the App ID. EAS-managed credentials add it
       automatically on the next build (the entitlement is in the app config); with manual
       signing, tick it and regenerate the provisioning profile.
@@ -115,7 +115,7 @@ before public release (defense-in-depth, not a hard blocker).
 - [x] **Paid Applications Agreement** signed + banking/tax started (Business section).
       IAP products return empty from StoreKit until this is *Active* — the #1 "IAP
       doesn't work" cause. (Banking can take ~24h to process.)
-- [ ] **Create the app record**, then copy its numeric **Apple ID** into `APP_APPLE_ID`
+- [x] **Create the app record**, then copy its numeric **Apple ID** into `APP_APPLE_ID`
       (§B) and redeploy functions.
 - [ ] **Create the IAP:** Non-Consumable, product ID
       `com.connortyrrell.molkky.removeads` (immutable — check spelling), price tier
@@ -137,16 +137,31 @@ before public release (defense-in-depth, not a hard blocker).
 
 ## E. AdMob console
 
-- [ ] Create an AdMob **iOS app** + one **anchored adaptive banner** ad unit.
-- [ ] Swap the real iOS App ID into `app.json` (`iosAppId`, currently Google's test ID) —
-      **requires a native rebuild** — and the real unit ID into `constants/ads.ts`
-      (JS-only). Keep the `__DEV__ ? TestIds…` guard as is.
+- [x] Created the AdMob **iOS app** ("Mölkky Scores") + a **Banner** ad unit
+      ("Mölkky iOS Banner"), requested as anchored adaptive at runtime.
+- [x] Swapped the real iOS IDs in (2026-07-05): App ID
+      `ca-app-pub-4413447709373186~2433533703` → `app.json` `iosAppId` (native rebuild
+      needed), unit ID `ca-app-pub-4413447709373186/3365260435` →
+      `constants/ads.ts` (JS). `__DEV__` guard kept; Android still on test IDs.
+- [ ] **Rebuild** to pick up the native `iosAppId`: `npx expo prebuild -p ios` +
+      `npx expo run:ios`. Dev builds still show test ads (correct); real ads serve only
+      in release/TestFlight and can take a few hours to fill.
+- [ ] Optional: AdMob account **payment/tax setup** (address PIN, tax info) — can run in
+      parallel; and publish **app-ads.txt** on `connortyrrell.com` to authorize Google as
+      a seller (improves fill/revenue, not required to launch).
 - [ ] Update the privacy policy page to mention advertising/AdMob data sharing.
 - [ ] Add **"Mölkky Scores"** to the privacy policy page's covered-apps list (currently
       lists only Convo Cards and Camp Conndigo).
-- [ ] **EEA/UK decision:** either add the UMP consent flow (~5 lines via
-      `AdsConsent.gatherConsent()`) or exclude EEA/UK from distribution. Google requires
-      consent there even for non-personalized ads.
+- [x] **EEA/UK UMP consent flow wired** (2026-07-05, `lib/ads.ts`): `initAds()` now calls
+      `AdsConsent.gatherConsent()` and only starts the ads SDK once `canRequestAds` is
+      true; outside the EEA/UK the form never shows. A dev-only `DEBUG_CONSENT_GEOGRAPHY`
+      constant forces the form for testing. ATT deliberately omitted (non-personalized
+      only, no ATT prompt).
+- [ ] **Create + publish a GDPR consent message in AdMob** (Privacy & messaging → GDPR).
+      REQUIRED for the wired flow to actually present a form — without a published message,
+      `gatherConsent()` runs but has nothing to show. Then set `DEBUG_CONSENT_GEOGRAPHY`
+      in `lib/ads.ts` to `'EEA'` on a test device to verify the form appears and ads only
+      load after consent (reset between runs with `AdsConsent.reset()`).
 
 ## F. Pre-submission device testing
 

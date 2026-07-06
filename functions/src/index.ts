@@ -1,10 +1,45 @@
 import { onCall, HttpsError } from 'firebase-functions/https';
+import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { VerificationException } from '@apple/app-store-server-library';
+import { Resend } from 'resend';
 import { verifyTransaction } from './verifiers';
 
 initializeApp();
+
+/**
+ * Resend API key. Set once with:
+ *   firebase functions:secrets:set RESEND_API_KEY
+ * (paste the key from https://resend.com/api-keys). Bound into
+ * sendContactMessage below via the `secrets` option so it's injected as an
+ * env var at runtime — never committed to source.
+ */
+const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+
+/**
+ * Where Contact Us messages are delivered. This must be the email address on
+ * the Resend account until a sending domain is verified: on the free tier /
+ * unverified domain Resend only allows sending TO your own account address —
+ * which is exactly what we want here.
+ *
+ * This is the address the Resend account is attached to.
+ */
+const CONTACT_RECIPIENT_EMAIL = 'connort@gmail.com';
+
+/**
+ * From address for Contact Us mail. connortyrrell.com is verified in Resend
+ * (DKIM at resend._domainkey, SPF/MX on the send. subdomain — root mail
+ * untouched), so we send from the real domain. No mailbox exists at this
+ * address and none is needed: replies go to the app user via replyTo, and
+ * delivery lands at CONTACT_RECIPIENT_EMAIL.
+ */
+const CONTACT_FROM = 'Mölkky Contact <contact@connortyrrell.com>';
+
+const MAX_MESSAGE_LENGTH = 5000;
+// Deliberately permissive: reject only what obviously isn't an address. Real
+// validation is "does Resend accept it / does the reply bounce".
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Must match constants/iap.ts REMOVE_ADS_SKU in the app. */
 const REMOVE_ADS_PRODUCT_ID = 'com.connortyrrell.molkky.removeads';
@@ -101,3 +136,72 @@ export const validatePurchase = onCall({ region: 'us-central1' }, async (request
 
   return { ok: true, productId: tx.productId, transactionId: tx.transactionId ?? null };
 });
+
+/**
+ * sendContactMessage — deliver an in-app "Contact Us" message to the app owner
+ * by email (via Resend).
+ *
+ * Auth is OPTIONAL: guests can reach support too (they must supply their own
+ * email). When the caller IS signed in we take their verified email from the
+ * auth token and IGNORE any client-supplied address, so a signed-in user can't
+ * spoof someone else's return address. Guests supply { email } which we only
+ * shape-check — the real proof is whether a reply bounces.
+ *
+ * The sender's address becomes the email's reply-to, so replying from your
+ * inbox goes straight back to the user.
+ */
+export const sendContactMessage = onCall(
+  { region: 'us-central1', secrets: [RESEND_API_KEY] },
+  async (request) => {
+    const rawMessage = request.data?.message;
+    if (typeof rawMessage !== 'string' || rawMessage.trim().length === 0) {
+      throw new HttpsError('invalid-argument', 'A message is required.');
+    }
+    const message = rawMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
+
+    // Signed-in: trust the token email (fall back to client-supplied only if
+    // the provider didn't populate one, e.g. some federated tokens). Guests:
+    // require a well-formed client-supplied address.
+    const tokenEmail =
+      typeof request.auth?.token.email === 'string' ? request.auth.token.email : '';
+    const clientEmail =
+      typeof request.data?.email === 'string' ? request.data.email.trim() : '';
+    const replyEmail = tokenEmail || clientEmail;
+
+    if (!replyEmail || !EMAIL_RE.test(replyEmail)) {
+      throw new HttpsError(
+        'invalid-argument',
+        'A valid email address is required so we can reply.',
+      );
+    }
+
+    const uid = request.auth?.uid ?? null;
+    const authState = uid ? `signed in (uid: ${uid})` : 'guest (not signed in)';
+
+    const text = [
+      `New Mölkky contact message`,
+      ``,
+      `From: ${replyEmail}`,
+      `Account: ${authState}`,
+      ``,
+      `Message:`,
+      message,
+    ].join('\n');
+
+    const resend = new Resend(RESEND_API_KEY.value());
+    const { data, error } = await resend.emails.send({
+      from: CONTACT_FROM,
+      to: [CONTACT_RECIPIENT_EMAIL],
+      replyTo: replyEmail,
+      subject: `Mölkky Contact — ${replyEmail}`,
+      text,
+    });
+
+    if (error) {
+      console.error('[sendContactMessage] Resend error', error);
+      throw new HttpsError('internal', 'Could not send your message. Please try again.');
+    }
+
+    return { ok: true, id: data?.id ?? null };
+  },
+);
